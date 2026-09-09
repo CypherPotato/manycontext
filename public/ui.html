@@ -369,11 +369,14 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .doc-context-menu button:disabled { color: var(--fg-soft); cursor: default; }
 .doc-context-menu .danger { color: var(--overdue); }
 .task-context-menu { position: fixed; z-index: 200; min-width: 200px; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); box-shadow: var(--shadow-lg); display: none; }
-.task-context-menu.open { display: block; max-height: calc(100vh - 16px); overflow-y: auto; }
+.task-context-menu.open { display: block; }
+.task-context-submenu { display: none; position: fixed; min-width: 180px; max-width: calc(100vw - 8px); max-height: calc(100vh - 8px); overflow-y: auto; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); box-shadow: var(--shadow-lg); }
+.task-context-branch.open > .task-context-submenu { display: block; }
+.task-context-menu button[data-submenu]::after { content: "›"; margin-left: auto; }
+.task-context-menu button:focus-visible { outline: 2px solid var(--fg-soft); outline-offset: -2px; }
 .task-context-menu button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: var(--radius-sm); color: var(--fg); font-size: 12px; text-align: left; }
 .task-context-menu button:hover { background: var(--bg-hover); }
 .task-context-menu button.active { font-weight: 600; }
-.task-context-menu .section-label { padding: 6px 8px 2px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-soft); }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .15s; }
@@ -391,9 +394,10 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .modal-close:hover { background: var(--bg-hover); color: var(--fg); }
 .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
 #task-modal .modal-body { display: flex; min-height: 0; }
-#task-modal .tab-panel.active { flex: 1; min-height: 0; }
+#task-modal .modal-body > .tab-panel.active { flex: 1; min-width: 0; }
 #tab-content.active { display: flex; flex-direction: column; gap: 18px; }
-#tab-content > .description-group { flex: none; }
+#tab-content > * { flex: none; min-height: auto; }
+#tab-content > .form-group { margin-bottom: 0; }
 #tab-content .description-editor, #tab-content .description-editor textarea, #tab-content .markdown-preview { min-height: 140px; }
 #tab-content > .overview-section { flex: none; border-top: 1px solid var(--border); padding-top: 18px; }
 #tab-content #tab-details { order: -1; border-top: 0; padding-top: 0; }
@@ -405,11 +409,30 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .project-group > summary { cursor: pointer; padding: 10px 12px; color: var(--fg-muted); font-weight: 600; }
 .project-group .project-item { margin-left: 12px; }
 .subtask-help { color: var(--fg-muted); font-size: 12px; margin: 10px 0; }
-.subtask-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.subtask-fields { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.subtask-row { display: flex; align-items: flex-start; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.subtask-row > input { margin-top: 7px; }
+.subtask-copy { flex: 1; min-width: 0; padding-top: 4px; }
+.subtask-copy strong { display: block; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.subtask-copy p { margin: 4px 0 0; color: var(--fg-muted); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; font-size: 12px; }
+.subtask-row:has(> input:checked) .subtask-copy strong { text-decoration: line-through; color: var(--fg-muted); }
+.subtask-fields { flex: 1; min-width: 0; display: none; gap: 8px; }
 .subtask-fields input, .subtask-fields textarea { width: 100%; }
-.subtask-controls { display: flex; gap: 8px; }
-.subtask-controls button { padding: 5px; }
+.subtask-fields textarea { min-height: 72px; resize: vertical; }
+.subtask-row.editing .subtask-copy { display: none; }
+.subtask-row.editing .subtask-fields { display: grid; }
+.subtask-fields button { justify-self: start; }
+.subtask-grip { cursor: grab; touch-action: none; color: var(--fg-soft); width: 24px; height: 28px; flex: none; font-size: 18px; }
+.subtask-grip:active { cursor: grabbing; }
+.subtask-row.drop-target { box-shadow: inset 0 -2px var(--fg-accent); }
+.subtask-actions { position: relative; flex: none; }
+.subtask-actions > summary { list-style: none; cursor: pointer; width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-sm); font-size: 18px; color: var(--fg-muted); }
+.subtask-actions > summary::-webkit-details-marker { display: none; }
+.subtask-actions > summary:hover, .subtask-actions[open] > summary { background: var(--bg-hover); }
+.subtask-action-menu { position: absolute; right: 0; top: 30px; z-index: 2; min-width: 130px; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); box-shadow: var(--shadow-lg); }
+.subtask-action-menu button { display: block; width: 100%; text-align: left; padding: 7px 10px; border-radius: var(--radius-sm); font-size: 12px; }
+.subtask-action-menu button:hover { background: var(--bg-hover); }
+.subtask-action-menu [data-action="remove"] { color: var(--overdue); }
+.subtask-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .subtask-summary-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
 .subtask-summary-row small { display: block; color: var(--fg-muted); white-space: pre-wrap; }
 .subtask-summary-row:has(input:checked) > span { text-decoration: line-through; color: var(--fg-muted); }
@@ -875,8 +898,8 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
         </div>
       </div>
       <div class="tab-panel" id="tab-subtasks">
-        <div class="attachment-actions"><strong>Tasks</strong><button class="btn-secondary" type="button" id="add-subtask">Adicionar item</button></div>
-        <p class="subtask-help">Defina o título e a descrição. Use as setas para ordenar. As alterações são aplicadas ao salvar a tarefa.</p>
+        <div class="subtask-heading"><strong>Tasks</strong><button class="btn-secondary" type="button" id="add-subtask">Adicionar item</button></div>
+        <p class="subtask-help">Arraste pela alça para ordenar. As alterações são aplicadas ao salvar a tarefa.</p>
         <div id="subtask-editor"></div>
       </div>
       <div class="tab-panel" id="tab-details">
@@ -1198,9 +1221,7 @@ function renderHome() {
     const key = `${item.project}:${item.taskId}`;
     if (!activityGroups.has(key)) activityGroups.set(key, { ...item, events: [] });
     const details = item.type === "updated" && item.data?.changes?.length
-      ? item.data.changes.map(change => change.field === "status"
-        ? `definiu task como ${change.to || "sem status"}`
-        : `alterou ${String(change.label || change.field).toLowerCase()} de ${change.from || "vazio"} para ${change.to || "vazio"}`)
+      ? item.data.changes.flatMap(taskChangeDescriptions)
       : [item.type === "comment"
         ? `comentou: ${item.content}`
         : item.type === "created"
@@ -1675,7 +1696,10 @@ function filteredEmptyHtml() {
 }
 
 function renderTaskRow(task) {
-  const dueBadge = task.due ? dueBadgeHtml(task.due) : "";
+  const group = task.group?.trim();
+  const hasGroup = !!group && group.toLowerCase() !== "null";
+  const hasDue = Number.isFinite(dateOnlyTime(task.due, NaN));
+  const dueBadge = hasDue ? dueBadgeHtml(task.due) : "";
   const unreadComments = unreadCommentCount(task);
   const unreadTag = unreadComments > 0 ? `<span class="tag comment-tag">${esc(commentCountLabel(unreadComments))}</span>` : "";
   const tags = (task.tags || []).map(tagHtml).join("");
@@ -1683,10 +1707,10 @@ function renderTaskRow(task) {
   const isDone = state.settings?.doneStatus && task.status === state.settings.doneStatus;
   const desc = shortenText(task.desc || "", 100);
   const detailItems = [
-    task.group ? `<span class="task-group" style="--tag-h:${tagHue(task.group)}">${esc(task.group)}</span>` : "",
+    hasGroup ? `<span class="task-group" style="--tag-h:${tagHue(group)}">${esc(group)}</span>` : "",
     desc ? `<span class="task-desc">${esc(desc)}</span>` : "",
     `<span class="task-row-date">criada ${esc(relativeCreatedLabel(task.createdAt))}</span>`,
-    task.due ? `<span class="task-row-date">prazo ${esc(relativeDueLabel(task.due))}</span>` : ""
+    hasDue ? `<span class="task-row-date">prazo ${esc(relativeDueLabel(task.due))}</span>` : ""
   ].filter(Boolean).join("");
   const createdByIcon = task.createdBy ? userAvatarHtml(task.createdBy) : "";
   return `
@@ -1700,7 +1724,7 @@ function renderTaskRow(task) {
           ${unreadTag}
           ${tags}
         </div>
-        <div class="task-desc-line${!task.group ? " no-group" : ""}">${detailItems}</div>
+        <div class="task-desc-line${!hasGroup ? " no-group" : ""}">${detailItems}</div>
       </div>
       <div class="task-row-meta">
         ${assignees}
@@ -1917,6 +1941,7 @@ function groupTasksByStatus(tasks) {
 }
 
 function dueBadgeHtml(due) {
+  if (!Number.isFinite(dateOnlyTime(due, NaN))) return "";
   const cat = categorizeDue(due);
   const label = dueLabel(due, cat);
   return `<span class="badge-due ${cat}">${ICON_CLOCK}${esc(label)}</span>`;
@@ -2628,25 +2653,25 @@ function openTaskContextMenu(event, taskId) {
   menu.dataset.taskId = taskId;
   const statuses = state.settings?.statuses || ["todo", "in-progress", "done"];
   const priorities = state.settings?.priorities || ["low", "medium", "high"];
-  let html = '<button data-action="open">Abrir tarefa</button><div class="section-label">Definir status / mover para etapa</div>';
+  let html = '<button data-action="open">Abrir tarefa</button><div class="task-context-branch"><button data-submenu aria-expanded="false">Status / mover para etapa</button><div class="task-context-submenu">';
   for (const s of statuses) {
     html += `<button data-action="status" data-value="${esc(s)}"${task.status === s ? ' class="active"' : ""}>${esc(capitalize(s))}</button>`;
   }
-  html += '<div class="section-label">Prioridade</div>';
+  html += '</div></div><div class="task-context-branch"><button data-submenu aria-expanded="false">Prioridade</button><div class="task-context-submenu">';
   for (const p of priorities) {
     html += `<button data-action="priority" data-value="${esc(p)}"${task.priority === p ? ' class="active"' : ""}>${esc(capitalize(p))}</button>`;
   }
-  html += '<div class="section-label">Mover para grupo</div><button data-action="group" data-value="">Sem grupo</button>';
+  html += '</div></div><div class="task-context-branch"><button data-submenu aria-expanded="false">Mover para grupo</button><div class="task-context-submenu"><button data-action="group" data-value="">Sem grupo</button>';
   for (const group of [...new Set(state.tasks.map(item => item.group).filter(Boolean))].sort()) {
     html += `<button data-action="group" data-value="${esc(group)}">${esc(group)}</button>`;
   }
-  html += '<div class="section-label">Prazo</div><button data-action="due" data-value="">Sem prazo</button>';
+  html += '</div></div><div class="task-context-branch"><button data-submenu aria-expanded="false">Prazo</button><div class="task-context-submenu"><button data-action="due" data-value="">Sem prazo</button>';
   const tomorrow = dueDateFromNow(1);
   const week = dueDateFromNow(7);
   const month = dueDateFromNow(30);
   html += `<button data-action="due" data-value="${tomorrow}">Amanhã</button>`;
   html += `<button data-action="due" data-value="${week}">7 dias</button>`;
-  html += `<button data-action="due" data-value="${month}">30 dias</button>`;
+  html += `<button data-action="due" data-value="${month}">30 dias</button></div></div>`;
   menu.innerHTML = html;
   menu.style.left = `${event.clientX}px`;
   menu.style.top = `${event.clientY}px`;
@@ -2678,9 +2703,31 @@ async function handleTaskContextAction(action, value, taskId) {
   }
 }
 
+function showTaskContextSubmenu(event) {
+  const button = event.target.closest("button");
+  if (!button || button.closest(".task-context-submenu")) return;
+  const menu = document.getElementById("task-context-menu");
+  for (const branch of menu.querySelectorAll(".task-context-branch")) {
+    const open = branch.firstElementChild === button;
+    branch.classList.toggle("open", open);
+    branch.firstElementChild.setAttribute("aria-expanded", String(open));
+  }
+  if (!button.hasAttribute("data-submenu")) return;
+  const submenu = button.nextElementSibling;
+  const anchor = button.getBoundingClientRect();
+  const parent = menu.getBoundingClientRect();
+  const rect = submenu.getBoundingClientRect();
+  const left = parent.right + rect.width <= window.innerWidth - 4 ? parent.right : parent.left - rect.width;
+  submenu.style.left = `${Math.max(4, Math.min(left, window.innerWidth - rect.width - 4))}px`;
+  submenu.style.top = `${Math.max(4, Math.min(anchor.top, window.innerHeight - rect.height - 4))}px`;
+}
+
+document.getElementById("task-context-menu").addEventListener("pointerover", showTaskContextSubmenu);
+document.getElementById("task-context-menu").addEventListener("focusin", showTaskContextSubmenu);
 document.getElementById("task-context-menu").addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) return;
+  if (button.hasAttribute("data-submenu")) { showTaskContextSubmenu(event); return; }
   const menu = document.getElementById("task-context-menu");
   handleTaskContextAction(button.dataset.action, button.dataset.value, Number(menu.dataset.taskId));
 });
@@ -2936,15 +2983,19 @@ function renderSubTasks() {
     (items.length ? items.map((item, index) => `<label class="subtask-summary-row"><input type="checkbox" data-index="${index}" ${item.completed ? "checked" : ""}><span>${esc(item.title)}${item.description ? `<small>${esc(item.description)}</small>` : ""}</span></label>`).join("") : '<p class="subtask-help">Nenhuma sub-task. Adicione etapas menores para acompanhar o progresso.</p>');
   document.getElementById("subtask-editor").innerHTML = items.map((item, index) => `<div class="subtask-row" data-index="${index}">
     <input type="checkbox" data-field="completed" aria-label="Concluída" ${item.completed ? "checked" : ""}>
-    <div class="subtask-fields"><input data-field="title" aria-label="Título da sub-task" placeholder="Título" value="${esc(item.title)}"><textarea data-field="description" aria-label="Descrição da sub-task" placeholder="Descrição">${esc(item.description)}</textarea></div>
-    <div class="subtask-controls"><button type="button" data-action="up" aria-label="Mover para cima" ${index === 0 ? "disabled" : ""}>↑</button><button type="button" data-action="down" aria-label="Mover para baixo" ${index === items.length - 1 ? "disabled" : ""}>↓</button><button type="button" data-action="remove" aria-label="Remover sub-task">×</button></div>
+    <button type="button" class="subtask-grip" aria-label="Ordenar sub-task. Use as setas para cima e para baixo." title="Arraste para ordenar ou use ↑ e ↓">⠿</button>
+    <div class="subtask-copy"><strong>${esc(item.title) || "Sem título"}</strong>${item.description ? `<p>${esc(item.description)}</p>` : ""}</div>
+    <div class="subtask-fields"><input data-field="title" aria-label="Título da sub-task" placeholder="Título" value="${esc(item.title)}"><textarea data-field="description" aria-label="Descrição da sub-task" placeholder="Descrição">${esc(item.description)}</textarea><button type="button" class="btn-secondary" data-action="finish">Concluir edição</button></div>
+    <details class="subtask-actions"><summary aria-label="Ações da sub-task" title="Ações">⋯</summary><div class="subtask-action-menu"><button type="button" data-action="edit">Editar</button><button type="button" data-action="remove">Remover</button></div></details>
   </div>`).join("");
 }
 
 document.getElementById("add-subtask").addEventListener("click", () => {
   state.subTasks.push({ title: "", description: "", completed: false, order: state.subTasks.length });
   renderSubTasks();
-  document.querySelector("#subtask-editor .subtask-row:last-child input[data-field='title']").focus();
+  const row = document.querySelector("#subtask-editor .subtask-row:last-child");
+  row.classList.add("editing");
+  row.querySelector("input[data-field='title']").focus();
 });
 document.getElementById("subtask-editor").addEventListener("input", event => {
   const field = event.target.dataset.field;
@@ -2955,14 +3006,57 @@ document.getElementById("subtask-editor").addEventListener("input", event => {
 document.getElementById("subtask-editor").addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
-  const index = Number(button.closest(".subtask-row").dataset.index);
-  if (button.dataset.action === "remove") state.subTasks.splice(index, 1);
-  else {
-    const target = index + (button.dataset.action === "up" ? -1 : 1);
-    if (target < 0 || target >= state.subTasks.length) return;
-    [state.subTasks[index], state.subTasks[target]] = [state.subTasks[target], state.subTasks[index]];
+  const row = button.closest(".subtask-row");
+  const index = Number(row.dataset.index);
+  row.querySelector(".subtask-actions").open = false;
+  if (button.dataset.action === "edit") {
+    row.classList.add("editing");
+    row.querySelector("[data-field='title']").focus();
+    return;
   }
+  if (button.dataset.action === "finish" && !state.subTasks[index].title.trim()) {
+    row.querySelector("[data-field='title']").focus();
+    return;
+  }
+  if (button.dataset.action === "remove") state.subTasks.splice(index, 1);
   renderSubTasks();
+});
+document.addEventListener("click", event => {
+  for (const menu of document.querySelectorAll(".subtask-actions[open]")) {
+    if (!menu.contains(event.target)) menu.open = false;
+  }
+});
+document.getElementById("subtask-editor").addEventListener("keydown", event => {
+  if (!event.target.matches(".subtask-grip") || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+  event.preventDefault();
+  const index = Number(event.target.closest(".subtask-row").dataset.index);
+  const target = index + (event.key === "ArrowUp" ? -1 : 1);
+  if (target < 0 || target >= state.subTasks.length) return;
+  state.subTasks.splice(target, 0, state.subTasks.splice(index, 1)[0]);
+  renderSubTasks();
+  document.querySelectorAll("#subtask-editor .subtask-grip")[target].focus();
+});
+document.getElementById("subtask-editor").addEventListener("pointerdown", event => {
+  const grip = event.target.closest(".subtask-grip");
+  if (!grip || event.button !== 0) return;
+  event.preventDefault();
+  grip.focus();
+  grip.setPointerCapture(event.pointerId);
+  const index = Number(grip.closest(".subtask-row").dataset.index);
+  let target = index;
+  grip.onpointermove = move => {
+    const row = document.elementFromPoint(move.clientX, move.clientY)?.closest("#subtask-editor .subtask-row");
+    document.querySelectorAll("#subtask-editor .drop-target").forEach(item => item.classList.remove("drop-target"));
+    target = row ? Number(row.dataset.index) : index;
+    if (row && target !== index) row.classList.add("drop-target");
+  };
+  grip.onpointerup = grip.onpointercancel = end => {
+    grip.onpointermove = grip.onpointerup = grip.onpointercancel = null;
+    grip.releasePointerCapture(end.pointerId);
+    if (end.type === "pointerup" && target !== index) state.subTasks.splice(target, 0, state.subTasks.splice(index, 1)[0]);
+    renderSubTasks();
+    document.querySelectorAll("#subtask-editor .subtask-grip")[end.type === "pointerup" ? target : index]?.focus();
+  };
 });
 
 function switchTaskTab(name) {
@@ -3306,10 +3400,33 @@ function conversationTypeLabel(type) {
   }[type] || type;
 }
 
+function taskChangeDescriptions(change) {
+  const label = change.label || change.field;
+  if (change.field === "subTasks") {
+    let items;
+    try { items = typeof change.to === "string" ? JSON.parse(change.to) : change.to; }
+    catch { return ["Checklist de subtarefas atualizado."]; }
+    if (!Array.isArray(items) || items.some(item => !item || typeof item.title !== "string")) return ["Checklist de subtarefas atualizado."];
+    if (!items.length) return ["Todas as subtarefas foram removidas."];
+    return [`Checklist atualizado: ${items.length} ${items.length === 1 ? "item" : "itens"}, ${items.filter(item => item.completed).length} concluídos.`, ...items.map((item, index) => `${index + 1}. ${item.completed ? "Concluída" : "Pendente"}: ${item.title}${item.description ? ` — ${item.description}` : ""}`)];
+  }
+  const values = [change.from, change.to].map(value => {
+    if (value == null || String(value).trim() === "" || String(value).trim().toLowerCase() === "null") return "";
+    if (change.field === "due" && Number.isFinite(dateOnlyTime(value, NaN))) return new Date(dateOnlyTime(value, NaN)).toLocaleDateString("pt-BR");
+    if (change.field === "priority") return ({ low: "Baixa", medium: "Média", high: "Alta", urgent: "Urgente" })[value] || String(value);
+    return String(value);
+  });
+  const [before, after] = values;
+  if (change.field === "desc") return [after ? (before ? "Descrição atualizada." : "Descrição adicionada.") : "Descrição removida."];
+  if (!after) return [`${label}: valor removido${before ? ` (antes: “${before}”)` : ""}.`];
+  if (!before) return [`${label}: definido como “${after}”.`];
+  return [`${label}: alterado de “${before}” para “${after}”.`];
+}
+
 function conversationEventHtml(event) {
   if (event.type === "comment") return markdownToHtml(event.content);
   if (event.type === "updated" && event.data?.changes?.length) {
-    return `<p>${esc(event.content)}</p><ul class="conversation-changes">${event.data.changes.map(change => `<li>${esc(change.label)}: ${esc(change.from || "vazio")} → ${esc(change.to || "vazio")}</li>`).join("")}</ul>`;
+    return `<ul class="conversation-changes">${event.data.changes.flatMap(taskChangeDescriptions).map(description => `<li>${esc(description)}</li>`).join("")}</ul>`;
   }
   if (event.type === "attachment_added" && event.data?.attachments?.length) {
     return `<p>${esc(event.content)}</p><ul class="conversation-changes">${event.data.attachments.map(attachment => `<li>${esc(attachment.name)}</li>`).join("")}</ul>`;
