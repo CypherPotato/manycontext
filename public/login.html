@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>manycontext</title>
+<style>
+:root {
+  --bg: #fafafa; --bg-card: #fff; --bg-hover: #f1f2f4;
+  --fg: #1f2328; --fg-muted: #6b7280; --fg-soft: #9ca3af;
+  --border: #e5e7eb; --border-focus: #6b7280;
+  --btn-primary-bg: #1f2328; --btn-primary-fg: #fff;
+  --shadow-lg: 0 6px 20px rgba(0,0,0,.08);
+  --radius: 6px; --radius-sm: 4px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; }
+.login-shell { width: min(100% - 32px, 360px); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 22px; }
+.login-title { font-size: 14px; font-weight: 700; letter-spacing: .2px; text-transform: lowercase; margin-bottom: 4px; }
+.login-subtitle { color: var(--fg-muted); font-size: 12px; margin-bottom: 18px; }
+.pin-label { display: block; color: var(--fg-muted); font-size: 12px; margin-bottom: 6px; }
+.pin-input { width: 100%; height: 42px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--fg); text-align: center; font-size: 22px; letter-spacing: 8px; padding: 4px 10px 4px 18px; outline: none; transition: border-color .15s, box-shadow .15s; }
+.pin-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
+.login-error { min-height: 18px; color: #b91c1c; font-size: 12px; margin-top: 8px; }
+.login-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.login-button { height: 32px; padding: 0 14px; border: 0; border-radius: var(--radius-sm); background: var(--btn-primary-bg); color: var(--btn-primary-fg); font-weight: 700; cursor: pointer; transition: filter .15s; }
+.login-button:hover:not(:disabled) { filter: brightness(1.1); }
+.login-button:disabled { opacity: .55; cursor: wait; }
+</style>
+</head>
+<body>
+<main class="login-shell">
+  <h1 class="login-title">manycontext</h1>
+  <p class="login-subtitle">Digite seu PIN para entrar.</p>
+  <form id="login-form">
+    <label class="pin-label" for="pin">PIN de 6 dígitos</label>
+    <input class="pin-input" id="pin" name="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" autofocus>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-actions">
+      <button class="login-button" id="login-button" type="submit">Entrar</button>
+    </div>
+  </form>
+</main>
+<script>
+const form = document.getElementById("login-form");
+const input = document.getElementById("pin");
+const error = document.getElementById("login-error");
+const button = document.getElementById("login-button");
+
+input.addEventListener("input", () => {
+  input.value = input.value.replace(/\D/g, "").slice(0, 6);
+  error.textContent = "";
+});
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!/^\d{6}$/.test(input.value)) {
+    error.textContent = "Informe um PIN de 6 dígitos.";
+    input.focus();
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const response = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: input.value }),
+    });
+    if (!response.ok) throw new Error("PIN inválido.");
+    location.replace("/");
+  } catch (err) {
+    error.textContent = err.message || "Não foi possível entrar.";
+    input.select();
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

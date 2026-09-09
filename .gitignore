@@ -1,0 +1,5 @@
+config.ini
+storage/
+*.log
+.env
+.env.*

@@ -1,0 +1,17 @@
+[app]
+database = "storage/manycontext.sqlite"
+attachments = "storage/attachments"
+
+[mcp]
+token = "replace-with-a-long-random-token"
+
+[aivax]
+api_key = ""
+model = "@inception/mercury-2"
+
+[auth.0]
+id = "admin"
+name = "Administrador"
+pin = "REPLACE_WITH_SIX_DIGITS"
+mcp_key = "replace-with-a-user-specific-mcp-key"
+is_admin = true
