@@ -7,14 +7,16 @@ final class AivaxClient
     private const MAX_RERANK_DOCUMENTS = 3000;
     private const MAX_RERANK_RESULTS = 200;
 
-    public function __construct(private readonly Config $config)
+    public const DEFAULT_MODEL = '@inception/mercury-2';
+
+    public function __construct(private readonly string $apiKey, private readonly string $model)
     {
     }
 
     public function complete(array $messages): string
     {
-        if ($this->config->aivaxApiKey === '') {
-            throw new HttpError(503, 'AIVAX_API_KEY não configurada.');
+        if ($this->apiKey === '') {
+            throw new HttpError(503, 'Chave da AIVAX não configurada. Um administrador pode defini-la em Administração.');
         }
         if (!function_exists('curl_init')) {
             throw new HttpError(503, 'A extensão cURL do PHP é necessária para usar a IA.');
@@ -25,11 +27,11 @@ final class AivaxClient
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode([
                 'messages' => $messages,
-                'model' => $this->config->aivaxModel,
+                'model' => $this->model,
                 'stream' => false,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->config->aivaxApiKey,
+                'Authorization: Bearer ' . $this->apiKey,
                 'Content-Type: application/json',
                 'User-Agent: manycontext-php/1.0',
             ],
@@ -56,8 +58,8 @@ final class AivaxClient
 
     public function rerank(string $query, array $documents, int $topN): array
     {
-        if ($this->config->aivaxApiKey === '') {
-            throw new HttpError(503, 'AIVAX_API_KEY não configurada.');
+        if ($this->apiKey === '') {
+            throw new HttpError(503, 'Chave da AIVAX não configurada. Um administrador pode defini-la em Administração.');
         }
         if (!function_exists('curl_init')) {
             throw new HttpError(503, 'A extensão cURL do PHP é necessária para usar a busca semântica.');
@@ -75,7 +77,7 @@ final class AivaxClient
                 'top_n' => max(1, min($topN, count($documents))),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->config->aivaxApiKey,
+                'Authorization: Bearer ' . $this->apiKey,
                 'Content-Type: application/json',
                 'User-Agent: manycontext-php/1.0',
             ],

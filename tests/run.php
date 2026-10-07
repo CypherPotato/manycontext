@@ -6,14 +6,13 @@ $temp = $tempBase . DIRECTORY_SEPARATOR . '.avi' . DIRECTORY_SEPARATOR . 'visual
 $configPath = $temp . DIRECTORY_SEPARATOR . 'config.ini';
 $dbPath = $temp . DIRECTORY_SEPARATOR . 'manycontext.sqlite';
 $attachmentsPath = $temp . DIRECTORY_SEPARATOR . 'attachments';
-$token = 'test-token-' . bin2hex(random_bytes(4));
 $sessionCookie = '';
 
 mkdir($temp, 0777, true);
 $legacyDb = new PDO('sqlite:' . $dbPath);
 $legacyDb->exec('CREATE TABLE daily_ai_summaries (user_id TEXT NOT NULL, summary_date TEXT NOT NULL, content TEXT NOT NULL, generated_at TEXT NOT NULL, PRIMARY KEY (user_id, summary_date))');
 unset($legacyDb);
-file_put_contents($configPath, "[app]\ndatabase = \"$dbPath\"\nattachments = \"$attachmentsPath\"\n\n[auth.0]\nid = \"tester\"\nname = \"Tester\"\npin = \"128582\"\nmcp_key = \"$token\"\nis_admin = true\n\n[auth.1]\nid = \"reviewer\"\nname = \"Reviewer\"\npin = \"654321\"\nmcp_key = \"reviewer-mcp-key\"\nis_admin = false\n\n[auth.2]\nid = \"outsider\"\nname = \"Outsider\"\npin = \"111111\"\nmcp_key = \"outsider-mcp-key\"\nis_admin = false\n");
+file_put_contents($configPath, "[app]\ndatabase = \"$dbPath\"\nattachments = \"$attachmentsPath\"\n");
 
 $port = free_port();
 $nullDevice = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'NUL' : '/dev/null';
@@ -39,14 +38,69 @@ try {
     $unauthenticatedApi = json_request('GET', $base . '/api/projects');
     assert_same(401, $unauthenticatedApi['status'], 'rejects API without PIN session');
 
+    $setupStatus = json_request('GET', $base . '/auth/status');
+    assert_true($setupStatus['json']['setupRequired'] === true && $setupStatus['json']['users'] === [], 'requires initial setup when there are no users');
+    assert_same(401, json_request('POST', $base . '/auth/login', ['pin' => '000000'])['status'], 'rejects PIN before setup');
+    assert_same(400, json_request('POST', $base . '/auth/setup', ['name' => 'Tester', 'pin' => '12'])['status'], 'rejects invalid setup PIN');
+    assert_same(400, json_request('POST', $base . '/auth/setup', ['name' => ' ', 'pin' => '128582'])['status'], 'rejects empty setup name');
+
+    $setup = json_request('POST', $base . '/auth/setup', ['name' => 'Tester', 'pin' => '128582']);
+    assert_same(201, $setup['status'], 'creates initial admin through setup');
+    assert_true($setup['json']['authenticated'] === true && $setup['json']['setupRequired'] === false, 'signs in initial admin');
+    assert_true($setup['json']['user']['id'] === 'tester' && $setup['json']['user']['isAdmin'] === true, 'initial setup user is admin');
+    assert_same(409, json_request('POST', $base . '/auth/setup', ['name' => 'Intruder', 'pin' => '999999'])['status'], 'rejects setup after the first user exists');
+
     $badLogin = json_request('POST', $base . '/auth/login', ['pin' => '000000']);
     assert_same(401, $badLogin['status'], 'rejects wrong PIN');
 
     $login = json_request('POST', $base . '/auth/login', ['pin' => '128582']);
-    assert_same(200, $login['status'], 'accepts configured PIN');
+    assert_same(200, $login['status'], 'accepts stored PIN');
     assert_true($login['json']['authenticated'] === true && $login['json']['user']['name'] === 'Tester', 'returns authenticated user');
-    assert_true($login['json']['user']['id'] === 'tester' && $login['json']['user']['isAdmin'] === true, 'returns configured user identity and admin flag');
+    assert_true($login['json']['user']['id'] === 'tester' && $login['json']['user']['isAdmin'] === true, 'returns stored user identity and admin flag');
     $sessionCookie = session_cookie_from_headers($login['headers']);
+
+    $adminUsers = json_request('GET', $base . '/api/admin/users');
+    assert_same(200, $adminUsers['status'], 'lists users for admin');
+    $token = $adminUsers['json']['users'][0]['mcpKey'];
+    assert_true(str_starts_with($token, 'mc_') && strlen($token) === 51, 'generates MCP key for initial admin');
+    assert_same('128582', $adminUsers['json']['users'][0]['pin'], 'exposes PIN to admins');
+
+    $reviewer = json_request('POST', $base . '/api/admin/users', ['id' => 'reviewer', 'name' => 'Reviewer', 'pin' => '654321', 'isAdmin' => false]);
+    assert_same(201, $reviewer['status'], 'admin creates user');
+    $outsider = json_request('POST', $base . '/api/admin/users', ['name' => 'Outsider', 'isAdmin' => false]);
+    assert_same(201, $outsider['status'], 'admin creates user with generated PIN');
+    assert_same('outsider', $outsider['json']['id'], 'derives user ID from name');
+    assert_true((bool)preg_match('/^\d{6}$/', $outsider['json']['pin']), 'generates a six-digit PIN');
+    $outsiderToken = $outsider['json']['mcpKey'];
+    assert_same(409, json_request('POST', $base . '/api/admin/users', ['name' => 'Duplicado', 'pin' => '654321'])['status'], 'rejects duplicated PIN');
+    assert_same(409, json_request('POST', $base . '/api/admin/users', ['name' => 'reviewer', 'pin' => '222222'])['status'], 'rejects duplicated name');
+    assert_same(400, json_request('PUT', $base . '/api/admin/users/outsider', ['pin' => 'abc'])['status'], 'rejects invalid PIN update');
+    $outsiderPin = json_request('PUT', $base . '/api/admin/users/outsider', ['pin' => '111111']);
+    assert_same('111111', $outsiderPin['json']['pin'], 'admin changes user PIN');
+    assert_same($outsiderToken, $outsiderPin['json']['mcpKey'], 'keeps MCP key when not rotating');
+    assert_same(400, json_request('PUT', $base . '/api/admin/users/tester', ['isAdmin' => false])['status'], 'prevents admin from demoting itself');
+    assert_same(400, json_request('DELETE', $base . '/api/admin/users/tester')['status'], 'prevents admin from deleting itself');
+
+    $temporaryUser = json_request('POST', $base . '/api/admin/users', ['name' => 'Temporário']);
+    $temporaryToken = $temporaryUser['json']['mcpKey'];
+    assert_same(200, mcp_request($base, $temporaryToken, 'server/discover')['status'], 'authenticates MCP with generated key');
+    $rotated = json_request('PUT', $base . '/api/admin/users/' . $temporaryUser['json']['id'], ['rotateMcpKey' => true]);
+    assert_true($rotated['json']['mcpKey'] !== $temporaryToken, 'rotates MCP key');
+    assert_same(401, mcp_request($base, $temporaryToken, 'server/discover')['status'], 'revokes old MCP key after rotation');
+    assert_same(200, mcp_request($base, $rotated['json']['mcpKey'], 'server/discover')['status'], 'accepts rotated MCP key');
+    assert_true(json_request('DELETE', $base . '/api/admin/users/' . $temporaryUser['json']['id'])['json']['deleted'], 'admin deletes user');
+    assert_same(401, mcp_request($base, $rotated['json']['mcpKey'], 'server/discover')['status'], 'revokes MCP key of deleted user');
+    assert_same(401, json_request('POST', $base . '/auth/login', ['pin' => $temporaryUser['json']['pin']])['status'], 'revokes PIN of deleted user');
+
+    $emptySettings = json_request('GET', $base . '/api/admin/settings');
+    assert_true($emptySettings['json']['aivax']['configured'] === false && $emptySettings['json']['aivax']['maskedKey'] === null, 'reports missing AIVAX key');
+    $savedSettings = json_request('PUT', $base . '/api/admin/settings', ['aivaxApiKey' => 'secret-aivax-key-1234', 'aivaxModel' => '@test/model']);
+    assert_true($savedSettings['json']['aivax']['configured'] === true && str_ends_with($savedSettings['json']['aivax']['maskedKey'], '1234'), 'stores AIVAX key and returns masked value');
+    assert_true(!str_contains($savedSettings['body'], 'secret-aivax-key'), 'never returns the full AIVAX key');
+    assert_same('@test/model', $savedSettings['json']['aivax']['model'], 'stores AIVAX model');
+    $clearedSettings = json_request('PUT', $base . '/api/admin/settings', ['aivaxApiKey' => '', 'aivaxModel' => '']);
+    assert_true($clearedSettings['json']['aivax']['configured'] === false, 'removes AIVAX key');
+    assert_same($clearedSettings['json']['aivax']['defaultModel'], $clearedSettings['json']['aivax']['model'], 'falls back to default AIVAX model');
 
     $authenticatedHome = http_request('GET', $base . '/');
     assert_true($authenticatedHome['status'] === 200 && str_contains($authenticatedHome['body'], 'project-list'), 'serves frontend after authentication');
@@ -188,10 +242,23 @@ try {
     assert_same('Reviewer', $reviewerComment['json']['userName'], 'stores second user as comment author');
     $reviewerProject = json_request('GET', $base . '/api/projects/Alpha');
     assert_same(0, $reviewerProject['json']['tasks'][0]['unreadCommentCount'], 'does not count reviewer own comment as unread');
+    $archivedTask = json_request('PUT', $base . '/api/projects/Alpha/tasks/1', ['archived' => true]);
+    assert_true($archivedTask['status'] === 200 && $archivedTask['json']['archivedAt'] !== null, 'project member archives task');
+    assert_same(0, json_request('GET', $base . '/api/projects')['json'][0]['tasksCount'], 'excludes archived tasks from project summary');
+    assert_same(400, json_request('PUT', $base . '/api/projects/Alpha/tasks/1', ['archived' => 'yes'])['status'], 'rejects non-boolean archived flag');
+    $unarchivedTask = json_request('PUT', $base . '/api/projects/Alpha/tasks/1', ['archived' => false]);
+    assert_true($unarchivedTask['json']['archivedAt'] === null, 'project member unarchives task');
+    $archiveEvents = array_column(json_request('GET', $base . '/api/projects/Alpha/tasks/1/conversation')['json'], 'type');
+    assert_true(in_array('archived', $archiveEvents, true) && in_array('unarchived', $archiveEvents, true), 'records archive events');
+    assert_same(403, json_request('PUT', $base . '/api/admin/projects/Alpha', ['archived' => true])['status'], 'restricts project archiving to admins');
     $reviewerMemberUpdate = json_request('PUT', $base . '/api/projects/Alpha/members', ['userIds' => []]);
     assert_same(403, $reviewerMemberUpdate['status'], 'rejects member management by non-admin');
     $reviewerAnalytics = json_request('GET', $base . '/api/admin/analytics');
     assert_same(403, $reviewerAnalytics['status'], 'restricts analytics dashboard to admins');
+    assert_same(403, json_request('GET', $base . '/api/admin/users')['status'], 'restricts user management to admins');
+    assert_same(403, json_request('PUT', $base . '/api/admin/settings', ['aivaxApiKey' => 'x'])['status'], 'restricts API key management to admins');
+    $reviewerStatus = json_request('GET', $base . '/auth/status');
+    assert_true(!str_contains($reviewerStatus['body'], 'mcpKey') && !str_contains($reviewerStatus['body'], '"pin"'), 'does not expose secrets in auth status');
 
     $outsiderLogin = json_request('POST', $base . '/auth/login', ['pin' => '111111']);
     assert_same(200, $outsiderLogin['status'], 'logs in user outside project');
@@ -202,6 +269,15 @@ try {
     $testerRelogin = json_request('POST', $base . '/auth/login', ['pin' => '128582']);
     assert_same(200, $testerRelogin['status'], 'logs first user back in');
     $sessionCookie = session_cookie_from_headers($testerRelogin['headers']);
+    $archivedProject = json_request('PUT', $base . '/api/admin/projects/Alpha', ['archived' => true]);
+    assert_true($archivedProject['status'] === 200 && $archivedProject['json']['archivedAt'] !== null, 'admin archives project');
+    assert_true(!in_array('Alpha', array_column(json_request('GET', $base . '/api/projects')['json'], 'name'), true), 'hides archived project from project list');
+    assert_same(403, json_request('GET', $base . '/api/projects/Alpha')['status'], 'blocks access to archived project');
+    $adminProjects = json_request('GET', $base . '/api/admin/projects');
+    assert_true(in_array('Alpha', array_column($adminProjects['json']['projects'], 'name'), true), 'lists archived projects for admins');
+    $restoredProject = json_request('PUT', $base . '/api/admin/projects/Alpha', ['archived' => false]);
+    assert_true($restoredProject['json']['archivedAt'] === null, 'admin unarchives project');
+    assert_same(200, json_request('GET', $base . '/api/projects/Alpha')['status'], 'restores access to unarchived project');
     $adminAnalytics = json_request('GET', $base . '/api/admin/analytics?days=7');
     assert_same(200, $adminAnalytics['status'], 'loads admin analytics dashboard');
     assert_same(1, $adminAnalytics['json']['totals']['created'], 'counts tasks created in the selected period');
@@ -211,6 +287,12 @@ try {
     $reviewerAnalytics = json_request('GET', $base . '/api/admin/analytics?days=7&project=Alpha&user=Reviewer');
     assert_same(1, $reviewerAnalytics['json']['totals']['comments'], 'filters analytics by project and user');
     assert_same(0, $reviewerAnalytics['json']['totals']['created'], 'keeps unrelated user activity out of filtered analytics');
+    json_request('PUT', $base . '/api/projects/Alpha/tasks/1', ['assignees' => ['Reviewer']]);
+    $renamedReviewer = json_request('PUT', $base . '/api/admin/users/reviewer', ['name' => 'Revisora']);
+    assert_same('Revisora', $renamedReviewer['json']['name'], 'admin renames user');
+    assert_same(['Revisora'], json_request('GET', $base . '/api/projects/Alpha/tasks/1')['json']['assignees'], 'propagates user rename to task assignees');
+    assert_same(1, json_request('GET', $base . '/api/admin/analytics?days=7&project=Alpha&user=Revisora')['json']['totals']['comments'], 'propagates user rename to activity history');
+    json_request('PUT', $base . '/api/admin/users/reviewer', ['name' => 'Reviewer']);
     $projectWithUnread = json_request('GET', $base . '/api/projects/Alpha');
     assert_same(1, $projectWithUnread['json']['tasks'][0]['unreadCommentCount'], 'counts unread comments from other users');
     $conversationPreview = json_request('GET', $base . '/api/projects/Alpha/tasks/1/conversation');
@@ -390,7 +472,7 @@ try {
     ]);
     assert_same(1, $mcpProjects['json']['result']['structuredContent']['count'], 'lists projects through MCP');
     assert_same('Alpha', $mcpProjects['json']['result']['structuredContent']['projects'][0]['name'], 'wraps MCP projects in an object');
-    $outsiderMcpProjects = mcp_request($base, 'outsider-mcp-key', 'tools/call', [
+    $outsiderMcpProjects = mcp_request($base, $outsiderToken, 'tools/call', [
         'name' => 'manycontext_list_projects',
         'arguments' => [],
     ]);
@@ -490,7 +572,7 @@ try {
         'name' => 'manycontext_list_tasks',
         'arguments' => ['project' => 'Alpha', 'search' => 'JSON-RPC'],
     ]);
-    assert_true(str_contains($mcpSemanticSearch['json']['error']['message'], 'AIVAX_API_KEY'), 'routes MCP task search through semantic reranking');
+    assert_true(str_contains($mcpSemanticSearch['json']['error']['message'], 'Chave da AIVAX'), 'routes MCP task search through semantic reranking');
     assert_same(503, json_request('GET', $base . '/api/projects/Alpha/tasks?search=JSON-RPC')['status'], 'routes UI task search through semantic reranking');
     $mcpList = mcp_request($base, $token, 'tools/call', [
         'name' => 'manycontext_list_tasks',
@@ -516,7 +598,7 @@ try {
         'name' => 'manycontext_delete_task',
         'arguments' => ['project' => 'Alpha', 'id' => 2],
     ]);
-    assert_true($mcpDeleted['json']['result']['structuredContent']['archived'], 'deletes task through MCP');
+    assert_true($mcpDeleted['json']['result']['structuredContent']['deleted'], 'deletes task through MCP');
 
     $sandboxSubTasks = json_request('POST', $base . '/api/projects/SubTaskSandbox/tasks', [
         'title' => 'Tarefa com subtarefas',

@@ -109,6 +109,20 @@ final class Repository
                 format_version INTEGER NOT NULL DEFAULT 2,
                 PRIMARY KEY (user_id, summary_date)
             );
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                pin TEXT NOT NULL UNIQUE,
+                mcp_key TEXT NOT NULL UNIQUE,
+                is_admin INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS document_nodes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 project_name TEXT NOT NULL,
@@ -133,12 +147,18 @@ final class Repository
         if (!in_array('display_name', $projectColumns, true)) {
             $this->db->exec('ALTER TABLE projects ADD COLUMN display_name TEXT NULL');
         }
+        if (!in_array('archived_at', $projectColumns, true)) {
+            $this->db->exec('ALTER TABLE projects ADD COLUMN archived_at TEXT NULL');
+        }
         $taskColumns = array_map(fn (array $row) => $row['name'], $this->db->query('PRAGMA table_info(tasks)')->fetchAll(PDO::FETCH_ASSOC));
         if (!in_array('assignees', $taskColumns, true)) {
             $this->db->exec("ALTER TABLE tasks ADD COLUMN assignees TEXT NOT NULL DEFAULT '[]'");
         }
         if (!in_array('sub_tasks', $taskColumns, true)) {
             $this->db->exec("ALTER TABLE tasks ADD COLUMN sub_tasks TEXT NOT NULL DEFAULT '[]'");
+        }
+        if (!in_array('archived_at', $taskColumns, true)) {
+            $this->db->exec('ALTER TABLE tasks ADD COLUMN archived_at TEXT NULL');
         }
         $dailySummaryColumns = array_map(fn (array $row) => $row['name'], $this->db->query('PRAGMA table_info(daily_ai_summaries)')->fetchAll(PDO::FETCH_ASSOC));
         if (!in_array('format_version', $dailySummaryColumns, true)) {
@@ -148,23 +168,193 @@ final class Repository
             $projects = $this->db->query('SELECT name FROM projects')->fetchAll(PDO::FETCH_COLUMN);
             $insertMember = $this->db->prepare('INSERT OR IGNORE INTO project_members (project_name, user_id, added_at) VALUES (:project_name, :user_id, :added_at)');
             foreach ($projects as $projectName) {
-                foreach ($this->config->authUsers as $user) {
+                foreach ($this->users() as $user) {
                     $insertMember->execute([':project_name' => $projectName, ':user_id' => $user['id'], ':added_at' => $this->now()]);
                 }
             }
         }
     }
 
-    public function projectSummaries(?string $userId = null, bool $isAdmin = false): array
+    public function hasUsers(): bool
     {
+        return (bool)$this->db->query('SELECT 1 FROM users LIMIT 1')->fetchColumn();
+    }
+
+    public function users(): array
+    {
+        return array_map(
+            fn (array $row) => $this->userFromRow($row),
+            $this->db->query('SELECT * FROM users ORDER BY rowid')->fetchAll(PDO::FETCH_ASSOC)
+        );
+    }
+
+    public function findUser(string $field, string $value): ?array
+    {
+        $column = match ($field) {
+            'id' => 'id',
+            'pin' => 'pin',
+            'mcpKey' => 'mcp_key',
+        };
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE $column = :value");
+        $stmt->execute([':value' => $value]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? $this->userFromRow($row) : null;
+    }
+
+    public function saveUser(?string $id, array $body): array
+    {
+        $current = $id === null ? null : ($this->findUser('id', $id) ?? throw new HttpError(404, 'Usuário não encontrado.'));
+
+        $name = $current['name'] ?? '';
+        if ($current === null || array_key_exists('name', $body)) {
+            $name = is_string($body['name'] ?? null) ? trim($body['name']) : '';
+            if ($name === '' || mb_strlen($name, 'UTF-8') > 80) {
+                throw new HttpError(400, 'Informe um nome com até 80 caracteres.');
+            }
+        }
+
+        $pin = $current['pin'] ?? null;
+        if (array_key_exists('pin', $body)) {
+            if (!is_string($body['pin']) || !preg_match('/^\d{6}$/', $body['pin'])) {
+                throw new HttpError(400, 'O PIN deve ter exatamente 6 dígitos.');
+            }
+            $pin = $body['pin'];
+        }
+        for ($attempt = 0; $pin === null && $attempt < 20; $attempt++) {
+            $candidate = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $pin = $this->findUser('pin', $candidate) === null ? $candidate : null;
+        }
+        if ($pin === null) {
+            throw new HttpError(500, 'Não foi possível gerar um PIN livre.');
+        }
+
+        $isAdmin = $current['isAdmin'] ?? false;
+        if (array_key_exists('isAdmin', $body)) {
+            if (!is_bool($body['isAdmin'])) {
+                throw new HttpError(400, 'isAdmin deve ser booleano.');
+            }
+            $isAdmin = $body['isAdmin'];
+        }
+
+        $mcpKey = $current === null || ($body['rotateMcpKey'] ?? false) === true
+            ? 'mc_' . bin2hex(random_bytes(24))
+            : $current['mcpKey'];
+
+        $userId = $current['id'] ?? null;
+        if ($userId === null) {
+            $requestedId = is_string($body['id'] ?? null) ? trim($body['id']) : '';
+            $userId = $requestedId !== '' ? $requestedId : trim((string)preg_replace('/[^a-z0-9]+/', '-', strtolower($name)), '-');
+            if ($requestedId === '' && ($userId === '' || $this->findUser('id', $userId) !== null)) {
+                $userId = ($userId !== '' ? $userId . '-' : 'user-') . bin2hex(random_bytes(3));
+            }
+            if (!preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/', $userId)) {
+                throw new HttpError(400, 'O ID deve conter apenas letras, números, "_" e "-" (até 64 caracteres).');
+            }
+        }
+
+        $now = $this->now();
+        $values = [':id' => $userId, ':name' => $name, ':pin' => $pin, ':mcp_key' => $mcpKey, ':is_admin' => $isAdmin ? 1 : 0, ':now' => $now];
+        $this->db->beginTransaction();
+        try {
+            if ($current === null) {
+                $this->db->prepare('INSERT INTO users (id, name, pin, mcp_key, is_admin, created_at, updated_at) VALUES (:id, :name, :pin, :mcp_key, :is_admin, :now, :now)')->execute($values);
+            } else {
+                $this->db->prepare('UPDATE users SET name = :name, pin = :pin, mcp_key = :mcp_key, is_admin = :is_admin, updated_at = :now WHERE id = :id')->execute($values);
+            }
+
+            if ($current !== null && $current['name'] !== $name) {
+                $rename = [':old' => $current['name'], ':new' => $name];
+                $this->db->prepare('UPDATE task_events SET user_name = :new WHERE user_name = :old')->execute($rename);
+                $this->db->prepare('UPDATE OR REPLACE task_conversation_reads SET user_name = :new WHERE user_name = :old')->execute($rename);
+                $tasks = $this->db->prepare('SELECT project_name, id, assignees FROM tasks WHERE instr(assignees, :old_json) > 0');
+                $tasks->execute([':old_json' => $this->json($current['name'])]);
+                $updateAssignees = $this->db->prepare('UPDATE tasks SET assignees = :assignees WHERE project_name = :project_name AND id = :id');
+                foreach ($tasks->fetchAll(PDO::FETCH_ASSOC) as $task) {
+                    $assignees = array_map(fn (mixed $assignee) => $assignee === $current['name'] ? $name : $assignee, json_decode($task['assignees'], true) ?: []);
+                    $updateAssignees->execute([':assignees' => $this->json(array_values(array_unique($assignees))), ':project_name' => $task['project_name'], ':id' => $task['id']]);
+                }
+            }
+            $this->db->commit();
+        } catch (\PDOException $error) {
+            $this->db->rollBack();
+            if (str_contains($error->getMessage(), 'UNIQUE constraint failed')) {
+                throw new HttpError(409, match (true) {
+                    str_contains($error->getMessage(), 'users.pin') => 'Este PIN já está em uso por outro usuário.',
+                    str_contains($error->getMessage(), 'users.name') => 'Já existe um usuário com este nome.',
+                    default => 'Já existe um usuário com este ID.',
+                });
+            }
+            throw $error;
+        }
+
+        return $this->findUser('id', $userId);
+    }
+
+    public function deleteUser(string $id): void
+    {
+        if ($this->findUser('id', $id) === null) {
+            throw new HttpError(404, 'Usuário não encontrado.');
+        }
+
+        $this->db->beginTransaction();
+        try {
+            foreach (['project_members', 'daily_ai_summaries', 'users'] as $table) {
+                $column = $table === 'users' ? 'id' : 'user_id';
+                $this->db->prepare("DELETE FROM $table WHERE $column = :id")->execute([':id' => $id]);
+            }
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
+    public function setting(string $key): ?string
+    {
+        $stmt = $this->db->prepare('SELECT value FROM app_settings WHERE key = :key');
+        $stmt->execute([':key' => $key]);
+        $value = $stmt->fetchColumn();
+
+        return is_string($value) ? $value : null;
+    }
+
+    public function saveSetting(string $key, ?string $value): void
+    {
+        if ($value === null) {
+            $this->db->prepare('DELETE FROM app_settings WHERE key = :key')->execute([':key' => $key]);
+            return;
+        }
+
+        $this->db->prepare('INSERT INTO app_settings (key, value, updated_at) VALUES (:key, :value, :now) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at')
+            ->execute([':key' => $key, ':value' => $value, ':now' => $this->now()]);
+    }
+
+    public function projectSummaries(?string $userId = null, bool $isAdmin = false, bool $includeArchived = false): array
+    {
+        $archivedFilter = $includeArchived ? '' : ' WHERE p.archived_at IS NULL';
         if ($userId !== null && !$isAdmin) {
-            $stmt = $this->db->prepare('SELECT p.* FROM projects p JOIN project_members m ON m.project_name = p.name WHERE m.user_id = :user_id ORDER BY p.name COLLATE NOCASE');
+            $stmt = $this->db->prepare('SELECT p.* FROM projects p JOIN project_members m ON m.project_name = p.name AND m.user_id = :user_id' . $archivedFilter . ' ORDER BY p.name COLLATE NOCASE');
             $stmt->execute([':user_id' => $userId]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $rows = $this->db->query('SELECT * FROM projects ORDER BY name COLLATE NOCASE')->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->db->query('SELECT p.* FROM projects p' . $archivedFilter . ' ORDER BY p.name COLLATE NOCASE')->fetchAll(PDO::FETCH_ASSOC);
         }
         return array_map(fn (array $row) => $this->projectSummary($row), $rows);
+    }
+
+    public function setProjectArchived(string $name, bool $archived): array
+    {
+        $name = $this->projectName($name);
+        $row = $this->projectRow($name);
+        if (!$row) {
+            throw new HttpError(404, sprintf('Project "%s" was not found.', $name));
+        }
+        if (($row['archived_at'] !== null) !== $archived) {
+            $this->db->prepare('UPDATE projects SET archived_at = :archived_at WHERE name = :name')
+                ->execute([':archived_at' => $archived ? $this->now() : null, ':name' => $name]);
+        }
+        return $this->projectSummary($this->projectRow($name));
     }
 
     public function projectExists(string $name): bool
@@ -175,8 +365,12 @@ final class Repository
     public function requireProjectAccess(string $name, string $userId, bool $isAdmin): void
     {
         $name = $this->projectName($name);
-        if (!$this->projectRow($name)) {
+        $row = $this->projectRow($name);
+        if (!$row) {
             throw new HttpError(404, sprintf('Project "%s" was not found.', $name));
+        }
+        if ($row['archived_at'] !== null) {
+            throw new HttpError(403, 'Este projeto está arquivado.');
         }
         if ($isAdmin) {
             return;
@@ -202,14 +396,14 @@ final class Repository
             'name' => $user['name'],
             'isAdmin' => $user['isAdmin'],
             'isMember' => $user['isAdmin'] || isset($memberIds[$user['id']]),
-        ], $this->config->authUsers);
+        ], $this->users());
     }
 
     public function setProjectMembers(string $name, array $userIds): array
     {
         $name = $this->projectName($name);
         $knownUsers = [];
-        foreach ($this->config->authUsers as $user) {
+        foreach ($this->users() as $user) {
             $knownUsers[$user['id']] = $user;
         }
         $selected = [];
@@ -258,6 +452,9 @@ final class Repository
             $row = $this->projectRow($project['name']);
             $doneStatus = $row ? $this->settingsFromRow($row)['doneStatus'] : 'done';
             foreach ($this->listTasks($project['name'], $user['name']) as $task) {
+                if ($task['archivedAt'] !== null) {
+                    continue;
+                }
                 $assignees = array_map(fn (string $name) => mb_strtolower($name, 'UTF-8'), $task['assignees'] ?? []);
                 $assigned = in_array(mb_strtolower($user['name'], 'UTF-8'), $assignees, true);
                 $done = $task['status'] === $doneStatus;
@@ -468,7 +665,7 @@ final class Repository
 
         $projects = $this->db->query('SELECT name FROM projects ORDER BY name COLLATE NOCASE')->fetchAll(PDO::FETCH_COLUMN);
         $users = [];
-        foreach ($this->config->authUsers as $user) {
+        foreach ($this->users() as $user) {
             $users[mb_strtolower($user['name'], 'UTF-8')] = $user['name'];
         }
         foreach ($this->db->query('SELECT DISTINCT user_name FROM task_events ORDER BY user_name COLLATE NOCASE')->fetchAll(PDO::FETCH_COLUMN) as $actorName) {
@@ -662,11 +859,17 @@ final class Repository
             }
         }
         $task['updatedAt'] = $this->now();
+        if (array_key_exists('archived', $body)) {
+            if (!is_bool($body['archived'])) {
+                throw new HttpError(400, 'archived must be a boolean.');
+            }
+            $task['archivedAt'] = $body['archived'] ? ($before['archivedAt'] ?? $task['updatedAt']) : null;
+        }
 
         $this->db->prepare('
             UPDATE tasks
             SET title = :title, desc = :desc, due = :due, priority = :priority, tags = :tags, group_name = :group_name,
-                status = :status, working_agent = :working_agent, assignees = :assignees, sub_tasks = :sub_tasks, updated_at = :updated_at
+                status = :status, working_agent = :working_agent, assignees = :assignees, sub_tasks = :sub_tasks, archived_at = :archived_at, updated_at = :updated_at
             WHERE project_name = :project_name AND id = :id
         ')->execute([
             ':project_name' => $projectName,
@@ -681,12 +884,17 @@ final class Repository
             ':working_agent' => $task['workingAgent'],
             ':assignees' => $this->json(is_array($task['assignees']) ? $task['assignees'] : []),
             ':sub_tasks' => $this->json($task['subTasks']),
+            ':archived_at' => $task['archivedAt'],
             ':updated_at' => $task['updatedAt'],
         ]);
 
         $changes = $this->taskChanges($before, $task);
         if (count($changes) > 0) {
             $this->addTaskEvent($projectName, $taskId, 'updated', $userName, 'Tarefa atualizada.', ['changes' => $changes]);
+        }
+        if (($before['archivedAt'] === null) !== ($task['archivedAt'] === null)) {
+            $archived = $task['archivedAt'] !== null;
+            $this->addTaskEvent($projectName, $taskId, $archived ? 'archived' : 'unarchived', $userName, $archived ? 'Tarefa arquivada.' : 'Tarefa desarquivada.', []);
         }
 
         return $this->getTask($projectName, $taskId, $userName);
@@ -703,7 +911,7 @@ final class Repository
             $this->removeDirectory($dir);
         }
 
-        return ['archived' => true, 'id' => $taskId];
+        return ['deleted' => true, 'id' => $taskId];
     }
 
     public function addUploadedAttachments(string $projectName, int $taskId, array $files, string $userName = 'Sistema'): array
@@ -1163,7 +1371,7 @@ final class Repository
     {
         $name = $row['name'];
         $settings = $this->settingsFromRow($row);
-        $tasks = $this->listTasks($name);
+        $tasks = array_values(array_filter($this->listTasks($name), fn (array $task) => $task['archivedAt'] === null));
         $statusCounts = array_fill_keys($settings['statuses'], 0);
         $priorityCounts = array_fill_keys($settings['priorities'], 0);
         $attachmentsCount = 0;
@@ -1185,6 +1393,7 @@ final class Repository
             'statusCounts' => $statusCounts,
             'priorityCounts' => $priorityCounts,
             'attachmentsCount' => $attachmentsCount,
+            'archivedAt' => $row['archived_at'],
         ];
     }
 
@@ -1199,7 +1408,7 @@ final class Repository
             ':updated_at' => $now,
         ]);
         $memberIds = $creatorUserId === null ? [] : [$creatorUserId => true];
-        foreach ($this->config->authUsers as $user) {
+        foreach ($this->users() as $user) {
             if ($user['isAdmin']) {
                 $memberIds[$user['id']] = true;
             }
@@ -1253,6 +1462,7 @@ final class Repository
             'attachments' => $this->taskAttachments($row['project_name'], (int)$row['id']),
             'unreadCommentCount' => $userName === null ? 0 : $this->unreadCommentCount($row['project_name'], (int)$row['id'], $userName),
             'createdBy' => $createdBy !== false ? $createdBy : null,
+            'archivedAt' => $row['archived_at'],
             'createdAt' => $row['created_at'],
             'updatedAt' => $row['updated_at'],
         ];
@@ -1576,11 +1786,8 @@ final class Repository
     private function taskAssignees(mixed $values): array
     {
         $knownUsers = [];
-        foreach ($this->config->authUsers as $user) {
-            $name = trim((string)($user['name'] ?? ''));
-            if ($name !== '') {
-                $knownUsers[mb_strtolower($name, 'UTF-8')] = $name;
-            }
+        foreach ($this->users() as $user) {
+            $knownUsers[mb_strtolower($user['name'], 'UTF-8')] = $user['name'];
         }
 
         $assignees = [];
@@ -1720,6 +1927,19 @@ final class Repository
             is_dir($path) ? $this->removeDirectory($path) : unlink($path);
         }
         rmdir($dir);
+    }
+
+    private function userFromRow(array $row): array
+    {
+        return [
+            'id' => $row['id'],
+            'name' => $row['name'],
+            'isAdmin' => (bool)$row['is_admin'],
+            'pin' => $row['pin'],
+            'mcpKey' => $row['mcp_key'],
+            'createdAt' => $row['created_at'],
+            'updatedAt' => $row['updated_at'],
+        ];
     }
 
     private function now(): string

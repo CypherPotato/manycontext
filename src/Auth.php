@@ -20,31 +20,40 @@ final class Auth
         session_start();
     }
 
-    public static function status(Config $config): array
+    public static function status(Repository $repository): array
     {
-        $user = self::user($config);
+        $user = self::user($repository);
         return [
             'authenticated' => $user !== null,
+            'setupRequired' => !$repository->hasUsers(),
             'user' => $user,
         ];
     }
 
-    public static function login(Config $config, mixed $pin): array
+    public static function login(Repository $repository, mixed $pin): array
     {
-        if (!is_string($pin) || !preg_match('/^\d{6}$/', $pin)) {
+        $user = is_string($pin) && preg_match('/^\d{6}$/', $pin) ? $repository->findUser('pin', $pin) : null;
+        if ($user === null) {
             throw new HttpError(401, 'PIN inválido.');
         }
 
-        foreach ($config->authUsers as $user) {
-            if (hash_equals($user['pin'], $pin)) {
-                session_regenerate_id(true);
-                $_SESSION['auth_user_id'] = $user['id'];
-                unset($_SESSION['auth_user']);
-                return self::status($config);
-            }
+        self::signIn($user['id']);
+        return self::status($repository);
+    }
+
+    public static function setup(Repository $repository, array $body): array
+    {
+        if ($repository->hasUsers()) {
+            throw new HttpError(409, 'A configuração inicial já foi concluída.');
         }
 
-        throw new HttpError(401, 'PIN inválido.');
+        $user = $repository->saveUser(null, [
+            'name' => $body['name'] ?? null,
+            'pin' => $body['pin'] ?? null,
+            'isAdmin' => true,
+        ]);
+        self::signIn($user['id']);
+        return self::status($repository);
     }
 
     public static function logout(): void
@@ -57,26 +66,17 @@ final class Auth
         session_destroy();
     }
 
-    public static function requireSession(Config $config): void
-    {
-        if (self::user($config) === null) {
-            throw new HttpError(401, 'Autenticação necessária.');
-        }
-    }
-
-    public static function user(Config $config): ?array
+    public static function user(Repository $repository): ?array
     {
         $userId = is_string($_SESSION['auth_user_id'] ?? null) ? $_SESSION['auth_user_id'] : null;
-        $legacyName = is_array($_SESSION['auth_user'] ?? null) && is_string($_SESSION['auth_user']['name'] ?? null)
-            ? $_SESSION['auth_user']['name']
-            : null;
-        foreach ($config->authUsers as $user) {
-            if (($userId !== null && hash_equals($user['id'], $userId)) || ($userId === null && $legacyName !== null && hash_equals($user['name'], $legacyName))) {
-                $_SESSION['auth_user_id'] = $user['id'];
-                unset($_SESSION['auth_user']);
-                return ['id' => $user['id'], 'name' => $user['name'], 'isAdmin' => $user['isAdmin']];
-            }
-        }
-        return null;
+        $user = $userId === null ? null : $repository->findUser('id', $userId);
+
+        return $user === null ? null : ['id' => $user['id'], 'name' => $user['name'], 'isAdmin' => $user['isAdmin']];
+    }
+
+    private static function signIn(string $userId): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['auth_user_id'] = $userId;
     }
 }

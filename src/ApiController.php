@@ -60,6 +60,12 @@ PROMPT . json_encode($activity, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSO
             return;
         }
 
+        if (str_starts_with($path, '/api/admin/')) {
+            $this->requireAdmin();
+            $this->handleAdmin($method, $path);
+            return;
+        }
+
         $segments = $this->segments($path);
 
         if ($method === 'GET' && count($segments) === 0) {
@@ -317,6 +323,87 @@ PROMPT;
             ['role' => 'user', 'content' => $request . "\n\nContexto da tarefa:\n" . json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
         ]);
         Http::json(200, ['action' => $action, 'result' => $result]);
+    }
+
+    private function handleAdmin(string $method, string $path): void
+    {
+        if ($path === '/api/admin/users') {
+            match ($method) {
+                'GET' => Http::json(200, ['users' => $this->repository->users()]),
+                'POST' => Http::json(201, $this->repository->saveUser(null, Http::bodyJson())),
+                default => throw new HttpError(405, 'Method not allowed.'),
+            };
+            return;
+        }
+
+        if (preg_match('#^/api/admin/users/([^/]+)$#', $path, $match)) {
+            $userId = urldecode($match[1]);
+            $isSelf = $userId === $this->user['id'];
+            if ($method === 'PUT') {
+                $body = Http::bodyJson();
+                if ($isSelf && ($body['isAdmin'] ?? true) === false) {
+                    throw new HttpError(400, 'Você não pode remover seu próprio acesso de administrador.');
+                }
+                Http::json(200, $this->repository->saveUser($userId, $body));
+                return;
+            }
+            if ($method === 'DELETE') {
+                if ($isSelf) {
+                    throw new HttpError(400, 'Você não pode excluir seu próprio usuário.');
+                }
+                $this->repository->deleteUser($userId);
+                Http::json(200, ['deleted' => true]);
+                return;
+            }
+            throw new HttpError(405, 'Method not allowed.');
+        }
+
+        if ($path === '/api/admin/projects' && $method === 'GET') {
+            Http::json(200, ['projects' => $this->repository->projectSummaries(includeArchived: true)]);
+            return;
+        }
+
+        if (preg_match('#^/api/admin/projects/([^/]+)$#', $path, $match)) {
+            $body = Http::bodyJson();
+            if ($method !== 'PUT' || !is_bool($body['archived'] ?? null)) {
+                throw new HttpError(400, 'Use PUT with a boolean archived field.');
+            }
+            Http::json(200, $this->repository->setProjectArchived(urldecode($match[1]), $body['archived']));
+            return;
+        }
+
+        if ($path === '/api/admin/settings') {
+            if ($method === 'PUT') {
+                $body = Http::bodyJson();
+                if (array_key_exists('aivaxApiKey', $body)) {
+                    if (!is_string($body['aivaxApiKey'])) {
+                        throw new HttpError(400, 'aivaxApiKey deve ser texto.');
+                    }
+                    $this->repository->saveSetting('aivax_api_key', trim($body['aivaxApiKey']) ?: null);
+                }
+                if (array_key_exists('aivaxModel', $body)) {
+                    if (!is_string($body['aivaxModel'])) {
+                        throw new HttpError(400, 'aivaxModel deve ser texto.');
+                    }
+                    $this->repository->saveSetting('aivax_model', trim($body['aivaxModel']) ?: null);
+                }
+            } elseif ($method !== 'GET') {
+                throw new HttpError(405, 'Method not allowed.');
+            }
+
+            $apiKey = $this->repository->setting('aivax_api_key') ?? '';
+            Http::json(200, [
+                'aivax' => [
+                    'configured' => $apiKey !== '',
+                    'maskedKey' => $apiKey === '' ? null : str_repeat('•', 8) . substr($apiKey, -4),
+                    'model' => $this->repository->setting('aivax_model') ?? AivaxClient::DEFAULT_MODEL,
+                    'defaultModel' => AivaxClient::DEFAULT_MODEL,
+                ],
+            ]);
+            return;
+        }
+
+        throw new HttpError(404, 'Not found');
     }
 
     private function requireAdmin(): void

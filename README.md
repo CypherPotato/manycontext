@@ -11,6 +11,7 @@ Gestão de projetos, tarefas e documentos em PHP e SQLite, com interface web e s
 - Menu de contexto com botão direito na lista ou Kanban: abrir tarefa, definir status/mover para etapa, prioridade, grupo e prazo.
 - Documentos e pastas com busca e compartilhamento por link público.
 - Dashboard e recursos opcionais de IA via AIVAX.
+- Página de administração: usuários, PINs, chaves MCP (inspecionar, copiar e rotacionar) e chave da AIVAX.
 
 ## Requisitos
 
@@ -24,7 +25,7 @@ cd manycontext
 cp config.ini.example config.ini
 ```
 
-Edite `config.ini`: defina um PIN próprio com seis dígitos e uma chave MCP longa e aleatória para cada usuário. O exemplo não contém um PIN válido. Se já houver configuração, preserve-a; não execute a cópia por cima dela.
+O `config.ini` define apenas onde ficam o banco SQLite e os anexos. Usuários, PINs, chaves MCP e a chave da AIVAX ficam no banco e são gerenciados pela interface.
 
 ```sh
 php -S localhost:8080 -t public public/index.php
@@ -32,17 +33,29 @@ php -S localhost:8080 -t public public/index.php
 
 Abra http://localhost:8080. O servidor embutido é apenas para desenvolvimento. O processo PHP precisa escrever em `storage/`. O banco e suas migrações aditivas são criados automaticamente.
 
-### Configuração
+### Configuração inicial
+
+Enquanto não houver usuários no banco, a tela de entrada pede o nome e o PIN do primeiro administrador. Depois disso, a configuração inicial fica bloqueada. Conclua-a logo após publicar uma instalação nova: até lá, qualquer pessoa com acesso à URL pode criar esse administrador.
+
+### Administração
+
+Administradores acessam **Administração** na barra lateral para:
+
+- criar, editar e excluir usuários, definindo nome, PIN e papel (o PIN pode ser gerado automaticamente);
+- ver, copiar e rotacionar a chave MCP de cada usuário — a chave anterior deixa de funcionar na hora;
+- definir, substituir ou remover a chave da AIVAX e o modelo usado. A chave salva nunca é exibida por completo;
+- arquivar e desarquivar projetos. Um projeto arquivado some da barra lateral, da Home e do MCP e fica inacessível até ser desarquivado; nada é excluído.
+
+Qualquer membro de um projeto pode arquivar ou desarquivar tarefas pelo menu de contexto da tarefa ou pelo painel de detalhes. Tarefas arquivadas saem das listas, contagens e da Home e aparecem no filtro **Status: Arquivadas**, exibido quando houver alguma. Pelo MCP, use `archived` em `manycontext_update_task` e `manycontext_list_tasks`.
+
+Renomear um usuário atualiza responsáveis e histórico de atividades. Excluir remove o acesso e as associações a projetos, mas preserva o histórico. Um administrador não pode excluir a si mesmo nem remover o próprio acesso de administrador.
 
 | Variável | Uso |
 | --- | --- |
 | `MANYCONTEXT_CONFIG` | Caminho alternativo para o arquivo INI; padrão: `config.ini` na raiz. |
-| `MANYCONTEXT_AUTH_USERS` | Lista JSON de usuários, substitui as seções `[auth.N]`. |
-| `AIVAX_API_KEY` | Chave opcional para IA; sobrepõe `[aivax].api_key`. |
-| `AIVAX_MODEL` | Modelo opcional; padrão `@inception/mercury-2`. |
 | `APP_TIMEZONE` | Fuso horário; padrão `America/Sao_Paulo`. |
 
-Nunca publique `config.ini`, `storage/`, chaves ou backups. A ausência de chave AIVAX desabilita chamadas de IA, sem impedir a gestão básica. Links públicos de documentos dão acesso a quem possui o link; compartilhe com cuidado.
+Nunca publique `config.ini`, `storage/`, chaves ou backups: o SQLite contém PINs e chaves. A ausência de chave AIVAX desabilita chamadas de IA, sem impedir a gestão básica. Links públicos de documentos dão acesso a quem possui o link; compartilhe com cuidado.
 
 ## API e MCP
 
@@ -78,7 +91,7 @@ O módulo Agent Logs não integra esta versão: interface, rotas, ferramentas MC
 php tests/run.php
 ```
 
-A suíte inicia um servidor local com configuração e SQLite temporários, sem chave de IA, e verifica API, autenticação, MCP, documentos, tarefas e migrações. Não usa o banco de produção.
+A suíte inicia um servidor local com configuração e SQLite temporários, sem chave de IA, e verifica configuração inicial, administração, API, autenticação, MCP, documentos, tarefas e migrações. Não usa o banco de produção.
 
 ## Produção e auto-pull
 

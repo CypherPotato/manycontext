@@ -26,7 +26,7 @@ if (PHP_SAPI === 'cli-server' && $path !== '/' && is_file(__DIR__ . $path)) {
 try {
     $config = Config::load();
     $repository = new Repository($config);
-    $aivax = new AivaxClient($config);
+    $aivax = new AivaxClient($repository->setting('aivax_api_key') ?? '', $repository->setting('aivax_model') ?? AivaxClient::DEFAULT_MODEL);
     $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
     if ($method === 'GET' && preg_match('#^/public/documents/([^/]+)$#', $path, $match)) {
@@ -35,7 +35,7 @@ try {
     }
 
     if ($path === '/mcp') {
-        (new McpController($repository, $config, $aivax))->handle($method);
+        (new McpController($repository, $aivax))->handle($method);
         return;
     }
 
@@ -47,7 +47,7 @@ try {
         $generated = 0;
         $skipped = 0;
         $failed = 0;
-        foreach ($config->authUsers as $user) {
+        foreach ($repository->users() as $user) {
             $existingSummary = $repository->dailySummary($user['id'], $date);
             if ($existingSummary !== null && $existingSummary['formatVersion'] >= Repository::DAILY_SUMMARY_FORMAT_VERSION) {
                 $skipped++;
@@ -111,14 +111,19 @@ PROMPT;
 
     if ($path === '/auth/status' && $method === 'GET') {
         Http::json(200, [
-            ...Auth::status($config),
-            'users' => array_map(fn (array $user) => ['id' => $user['id'], 'name' => $user['name'], 'isAdmin' => $user['isAdmin']], $config->authUsers),
+            ...Auth::status($repository),
+            'users' => array_map(fn (array $user) => ['id' => $user['id'], 'name' => $user['name'], 'isAdmin' => $user['isAdmin']], $repository->users()),
         ]);
         return;
     }
 
     if ($path === '/auth/login' && $method === 'POST') {
-        Http::json(200, Auth::login($config, Http::bodyJson()['pin'] ?? null));
+        Http::json(200, Auth::login($repository, Http::bodyJson()['pin'] ?? null));
+        return;
+    }
+
+    if ($path === '/auth/setup' && $method === 'POST') {
+        Http::json(201, Auth::setup($repository, Http::bodyJson()));
         return;
     }
 
@@ -130,13 +135,13 @@ PROMPT;
 
     if ($method === 'GET' && ($path === '/' || $path === '/index.html')) {
         header('Content-Type: text/html; charset=utf-8');
-        readfile(__DIR__ . (Auth::status($config)['authenticated'] ? '/ui.html' : '/login.html'));
+        readfile(__DIR__ . (Auth::user($repository) !== null ? '/ui.html' : '/login.html'));
         return;
     }
 
     if (str_starts_with($path, '/api/')) {
-        Auth::requireSession($config);
-        (new ApiController($repository, Auth::user($config), $aivax))->handle($method, $path);
+        $user = Auth::user($repository) ?? throw new ManyContext\HttpError(401, 'Autenticação necessária.');
+        (new ApiController($repository, $user, $aivax))->handle($method, $path);
         return;
     }
 
