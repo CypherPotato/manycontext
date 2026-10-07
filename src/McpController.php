@@ -8,7 +8,6 @@ final class McpController
 
     public function __construct(
         private readonly Repository $repository,
-        private readonly Config $config,
         private readonly AivaxClient $aivax
     ) {
     }
@@ -111,9 +110,10 @@ final class McpController
             $this->tool('manycontext_get_project', 'Get one project with settings and tasks.', [
                 'project' => ['type' => 'string'],
             ], ['project']),
-            $this->tool('manycontext_list_tasks', 'List tasks from one project, optionally filtered. Free-text search uses semantic reranking.', [
+            $this->tool('manycontext_list_tasks', 'List tasks from one project, optionally filtered. Free-text search uses semantic reranking. Archived tasks are only returned when archived is true.', [
                 'project' => ['type' => 'string'],
                 'search' => ['type' => 'string'],
+                'archived' => ['type' => 'boolean'],
                 'status' => ['type' => 'string'],
                 'priority' => ['type' => 'string'],
                 'group' => ['type' => 'string'],
@@ -144,7 +144,7 @@ final class McpController
                     'completed' => ['type' => 'boolean'],
                 ], 'required' => ['title']]],
             ], ['project']),
-            $this->tool('manycontext_update_task', 'Update fields on an existing task.', [
+            $this->tool('manycontext_update_task', 'Update fields on an existing task. Set archived to true to archive it or false to restore it.', [
                 'project' => ['type' => 'string'],
                 'id' => ['type' => 'integer', 'minimum' => 1],
                 'title' => ['type' => 'string'],
@@ -162,6 +162,7 @@ final class McpController
                     'order' => ['type' => 'integer', 'minimum' => 0],
                     'completed' => ['type' => 'boolean'],
                 ], 'required' => ['title']]],
+                'archived' => ['type' => 'boolean'],
             ], ['project', 'id']),
             $this->tool('manycontext_write_task_comment', 'Add a task conversation comment, or update an existing comment when commentId is provided. Returns the changed comment and complete task.', [
                 'project' => ['type' => 'string'],
@@ -170,7 +171,7 @@ final class McpController
                 'content' => ['type' => 'string'],
                 'markConversationRead' => ['type' => 'boolean'],
             ], ['project', 'taskId', 'content']),
-            $this->tool('manycontext_delete_task', 'Delete a task and its attachments.', [
+            $this->tool('manycontext_delete_task', 'Permanently delete a task and its attachments. To archive instead, use manycontext_update_task with archived: true.', [
                 'project' => ['type' => 'string'],
                 'id' => ['type' => 'integer', 'minimum' => 1],
             ], ['project', 'id']),
@@ -469,6 +470,9 @@ final class McpController
     {
         $tasks = $this->repository->listTasks($this->requiredString($args, 'project'), $this->actor($args));
         $filtered = array_values(array_filter($tasks, function (array $task) use ($args): bool {
+            if (($task['archivedAt'] !== null) !== (($args['archived'] ?? false) === true)) {
+                return false;
+            }
             if (($args['status'] ?? null) && $task['status'] !== $args['status']) {
                 return false;
             }
@@ -513,16 +517,12 @@ final class McpController
         $bearer = preg_match('/^Bearer\s+(.+)$/i', $header, $match) ? $match[1] : '';
         $queryToken = is_string($_GET['token'] ?? null) ? $_GET['token'] : '';
         $token = $bearer ?: ($_SERVER['HTTP_X_MCP_TOKEN'] ?? '') ?: $queryToken;
-        if ($token === '') {
+        $user = $token === '' ? null : $this->repository->findUser('mcpKey', (string)$token);
+        if ($user === null) {
             return false;
         }
-        foreach ($this->config->authUsers as $user) {
-            if ($user['mcpKey'] !== '' && hash_equals($user['mcpKey'], (string)$token)) {
-                $this->user = ['id' => $user['id'], 'name' => $user['name'], 'isAdmin' => $user['isAdmin']];
-                return true;
-            }
-        }
-        return false;
+        $this->user = ['id' => $user['id'], 'name' => $user['name'], 'isAdmin' => $user['isAdmin']];
+        return true;
     }
 
     private function requiredString(array $args, string $name): string

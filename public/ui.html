@@ -234,6 +234,37 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .admin-table tbody tr:hover { background: var(--bg-hover); }
 .admin-table-total { color: var(--fg); font-weight: 650; }
 
+/* Admin management */
+.manage-panel-actions { display: flex; align-items: center; gap: 6px; }
+.manage-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.manage-table th, .manage-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; white-space: nowrap; }
+.manage-table th { color: var(--fg-muted); font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.manage-table tbody tr:last-child td { border-bottom: none; }
+.manage-table tbody tr:hover { background: var(--bg-hover); }
+.manage-user { display: grid; gap: 1px; }
+.manage-user strong { font-weight: 600; }
+.manage-user span { color: var(--fg-soft); font-size: 11px; }
+.manage-role { display: inline-block; padding: 1px 7px; border-radius: var(--radius-sm); background: var(--bg-subtle); color: var(--fg-muted); font-size: 11px; }
+.manage-role.admin { background: var(--fg); color: var(--bg-card); }
+.manage-archived td:not(.manage-actions) { opacity: .6; }
+.task-unarchive { height: 24px; padding: 2px 8px; font-size: 11px; }
+.secret-cell { display: inline-flex; align-items: center; gap: 2px; }
+.secret-value { min-width: 64px; margin-right: 4px; font: 12px "Cascadia Code", "SFMono-Regular", Consolas, monospace; letter-spacing: .02em; color: var(--fg); }
+.secret-value.key { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.manage-actions { width: 1%; text-align: right !important; }
+.manage-actions .settings-icon-btn { vertical-align: middle; }
+.manage-key-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-subtle); }
+.manage-key-head strong { display: block; font-size: 13px; }
+.manage-key-head span { color: var(--fg-muted); font-size: 11px; }
+.manage-key-status { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-muted); font-size: 11px; white-space: nowrap; }
+.manage-key-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fg-soft); }
+.manage-key-status.configured::before { background: var(--status-done); }
+.manage-key-footer { display: flex; justify-content: flex-end; gap: 6px; }
+.checkbox-field { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+.checkbox-field input { width: auto; }
+.form-hint { display: block; margin-top: 4px; color: var(--fg-soft); font-size: 11px; }
+#user-modal .modal { max-width: 420px; }
+
 .admin-empty { min-height: 220px; display: grid; place-items: center; color: var(--fg-muted); font-size: 12px; text-align: center; }
 .admin-empty.compact { min-height: 120px; }
 .admin-error button { margin-top: 12px; }
@@ -313,7 +344,8 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .assignee-option { min-height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--fg-muted); background: var(--bg-card); cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
 .assignee-option:hover { background: var(--bg-hover); color: var(--fg); border-color: var(--border-strong); }
 .assignee-option:has(input:focus-visible) { outline: 2px solid var(--border-focus); outline-offset: 2px; }
-.assignee-option:has(input:checked) { color: var(--fg); background: var(--bg-hover); border-color: var(--border-strong); }
+.assignee-option:has(input:checked) { color: var(--fg); background: var(--bg-hover); border-color: var(--border-strong); box-shadow: inset 0 0 0 1px var(--border-strong); font-weight: 600; }
+.assignee-option:not(:has(input:checked)) .user-avatar { filter: grayscale(1); opacity: .55; }
 .assignee-option input { position: absolute; opacity: 0; pointer-events: none; }
 .assignee-empty { color: var(--fg-muted); font-size: 12px; }
 
@@ -382,7 +414,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .15s; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
 .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 90%; max-width: 560px; max-height: 85vh; display: flex; flex-direction: column; transform: translateY(8px); transition: transform .15s; }
-#task-modal .modal { width: min(960px, calc(100vw - 48px)); max-width: none; height: min(760px, calc(100vh - 48px)); }
+#task-modal .modal { width: min(1080px, calc(100vw - 48px)); max-width: none; height: min(800px, calc(100vh - 48px)); }
 #settings-modal .modal { width: min(640px, calc(100vw - 48px)); max-width: none; }
 #ai-result-modal .modal { width: min(760px, calc(100vw - 48px)); max-width: none; }
 #ai-result-modal .modal-body { padding: 24px 28px; }
@@ -393,19 +425,40 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .modal-close { width: 24px; height: 24px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; transition: background .15s; font-size: 16px; color: var(--fg-muted); }
 .modal-close:hover { background: var(--bg-hover); color: var(--fg); }
 .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-#task-modal .modal-body { display: flex; min-height: 0; }
-#task-modal .modal-body > .tab-panel.active { flex: 1; min-width: 0; }
-#tab-content.active { display: flex; flex-direction: column; gap: 18px; }
+#task-modal .modal-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; padding: 0; overflow: hidden; }
+.task-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.task-title-input { width: 100%; flex: none; padding: 18px 24px 10px; border: none; border-radius: 0; background: transparent; font-size: 18px; font-weight: 600; line-height: 1.35; }
+#task-modal .task-title-input:focus { box-shadow: none; }
+.task-main .modal-tabs { flex: none; padding: 0 24px; }
+.task-main-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; padding: 20px 24px 28px; }
+.task-main-scroll > .tab-panel.active { flex: 1; min-width: 0; }
+#tab-content.active { display: flex; flex-direction: column; gap: 22px; }
 #tab-content > * { flex: none; min-height: auto; }
-#tab-content > .form-group { margin-bottom: 0; }
-#tab-content .description-editor, #tab-content .description-editor textarea, #tab-content .markdown-preview { min-height: 140px; }
-#tab-content > .overview-section { flex: none; border-top: 1px solid var(--border); padding-top: 18px; }
-#tab-content #tab-details { order: -1; border-top: 0; padding-top: 0; }
-#tab-content > .form-group:first-child { order: -2; }
-#tab-content #tab-attachments::before { content: 'Anexos'; display: block; font-weight: 600; margin-bottom: 12px; }
-#tab-content #tab-conversation::before { content: 'Comentários e atividade'; display: block; font-weight: 600; margin-bottom: 12px; }
+#tab-content > .overview-section { border-top: 1px solid var(--border); padding-top: 18px; }
+#tab-content .description-editor, #tab-content .description-editor textarea, #tab-content .markdown-preview { min-height: 260px; }
+.description-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.description-header label { margin-bottom: 0; }
+.description-hint { flex: 1; color: var(--fg-soft); font-size: 11px; }
+.description-header .ai-actions-wrap { margin-bottom: 0; }
+.description-header .ai-actions-menu { left: auto; right: 0; }
+#tf-desc { tab-size: 4; }
+.task-section-title, .description-header label, #tab-content #tab-conversation::before { color: var(--fg); font-size: 13px; font-weight: 600; }
+#tab-content #tab-conversation::before { content: 'Comentários e atividade'; display: block; margin-bottom: 12px; }
 #tab-content .conversation-list { max-height: 400px; flex: none; }
 #tab-content .conversation-layout { flex: none; }
+.task-side { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 18px 16px; background: var(--bg-subtle); border-left: 1px solid var(--border); }
+.task-side-title { margin-bottom: 14px; color: var(--fg-muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.task-props { display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: start; gap: 10px; }
+.task-props > label, .task-props > span { padding-top: 7px; color: var(--fg-muted); font-size: 12px; }
+.task-props input, .task-props select { width: 100%; }
+.task-side .task-info { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); grid-template-columns: 82px minmax(0, 1fr); column-gap: 10px; }
+.task-info:empty { display: none; }
+#danger-zone { margin-top: auto; padding-top: 18px; display: grid; gap: 4px; }
+#danger-zone .task-archive-btn { color: var(--fg-muted); }
+#danger-zone .task-archive-btn:hover { color: var(--fg); background: var(--bg-hover); border-color: var(--border); }
+.task-archived-note { margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--fg-muted); font-size: 12px; }
+#danger-zone button { width: 100%; height: 30px; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--overdue); font-size: 12px; font-weight: 500; transition: background .15s, border-color .15s; }
+#danger-zone button:hover { background: var(--priority-high-bg); border-color: color-mix(in srgb, var(--overdue) 30%, var(--border)); }
 .project-group > summary { cursor: pointer; padding: 10px 12px; color: var(--fg-muted); font-weight: 600; }
 .project-group .project-item { margin-left: 12px; }
 .subtask-help { color: var(--fg-muted); font-size: 12px; margin: 10px 0; }
@@ -446,6 +499,8 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .description-editor textarea { flex: 1; min-height: 320px; resize: none; line-height: 1.55; }
 .markdown-preview { flex: 1; min-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; background: var(--bg-input); color: var(--fg); line-height: 1.6; white-space: normal; cursor: text; }
 .markdown-preview:empty::before { content: attr(data-placeholder); color: var(--fg-soft); }
+.markdown-preview:hover { border-color: var(--border-strong); }
+.markdown-preview:focus-visible { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
 .markdown-preview.editing { display: none; }
 .description-editor.previewing textarea { display: none; }
 .markdown-preview p, .markdown-preview ul, .markdown-preview ol, .markdown-preview pre, .markdown-preview blockquote { margin-bottom: 10px; }
@@ -511,12 +566,18 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .chip { font-size: 12px; background: var(--bg-subtle); border: 1px solid var(--border); padding: 2px 4px 2px 8px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 4px; color: var(--fg); }
 .chip button { font-size: 14px; line-height: 1; opacity: .5; padding: 0 4px; color: var(--fg-muted); }
 .chip button:hover { opacity: 1; color: var(--overdue); }
-.tag-suggestions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; min-height: 0; }
+.tag-editor { min-height: 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 3px 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); cursor: text; transition: border-color .15s, box-shadow .15s; }
+.tag-editor:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
+#task-modal .tag-editor input { flex: 1; width: auto; min-width: 72px; padding: 2px 4px; border: none; background: transparent; box-shadow: none; }
+.tag-chip { display: inline-flex; align-items: center; gap: 2px; padding-right: 2px; }
+.tag-chip button { width: 16px; height: 16px; display: grid; place-items: center; border-radius: 3px; color: inherit; font-size: 13px; line-height: 1; opacity: .6; }
+.tag-chip button:hover { opacity: 1; background: color-mix(in srgb, currentColor 15%, transparent); }
+.tag-suggestions { display: none; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.tag-field:focus-within .tag-suggestions:not(:empty) { display: flex; }
 .tag-suggestion { font-size: 11px; padding: 2px 7px; border-radius: var(--radius-sm); border: 1px solid hsl(var(--tag-h, 220) var(--tag-bd-s) var(--tag-bd-l)); background: hsl(var(--tag-h, 220) var(--tag-bg-s) var(--tag-bg-l)); color: hsl(var(--tag-h, 220) var(--tag-fg-s) var(--tag-fg-l)); transition: filter .15s, transform .12s, border-color .15s; }
 .tag-suggestion:hover:not(:disabled) { filter: brightness(.97); transform: translateY(-1px); border-color: hsl(var(--tag-h, 220) var(--tag-bd-s) calc(var(--tag-bd-l) - 8%)); }
 .tag-suggestion:active:not(:disabled) { transform: translateY(0); }
-.tag-suggestion:disabled { opacity: .45; cursor: not-allowed; }
-.attachment-actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.attachment-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .attachment-actions input { display: none; }
 .attachment-list { display: flex; flex-direction: column; }
 .attachment-item { padding: 10px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
@@ -532,22 +593,45 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .attachment-pending { color: var(--this-month); font-weight: 600; }
 #tab-conversation.active { display: flex; flex-direction: column; }
 .conversation-layout { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 12px; }
-.conversation-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.conversation-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; padding-right: 4px; }
 .conversation-empty { color: var(--fg-muted); font-size: 12px; text-align: center; padding: 28px 12px; }
-.conversation-item { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); padding: 10px 12px; }
-.conversation-item[data-type="comment"] { background: var(--bg-input); }
-.conversation-meta { display: flex; align-items: center; gap: 8px; color: var(--fg-muted); font-size: 11px; margin-bottom: 6px; }
-.conversation-user { color: var(--fg); font-weight: 700; }
-.conversation-user .user-avatar { width: 20px; height: 20px; font-size: 10px; }
-.conversation-type { text-transform: uppercase; letter-spacing: .3px; font-weight: 700; color: var(--fg-soft); }
-.conversation-content { font-size: 13px; }
-.conversation-changes { margin: 6px 0 0 16px; color: var(--fg-muted); font-size: 12px; }
-.conversation-actions { display: flex; gap: 6px; margin-top: 8px; }
-.conversation-action { color: var(--fg-muted); font-size: 12px; border-radius: var(--radius-sm); padding: 2px 6px; }
+.conversation-item { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; padding-bottom: 14px; }
+.conversation-item:not(:last-child)::before { content: ""; position: absolute; left: 13.5px; top: 30px; bottom: 2px; width: 1px; background: var(--border); }
+.conversation-item[data-type="comment"]:not(:last-child)::before { top: 34px; }
+.conversation-marker { width: 28px; height: 28px; display: grid; place-items: center; }
+.conversation-marker::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--border-strong); }
+.conversation-marker .user-avatar { width: 28px; height: 28px; font-size: 12px; }
+.conversation-item[data-type="comment"] .conversation-marker::after { display: none; }
+.conversation-meta { min-height: 28px; display: flex; align-items: center; flex-wrap: wrap; column-gap: 6px; color: var(--fg-muted); font-size: 12px; }
+.conversation-user { color: var(--fg); font-weight: 600; }
+.conversation-time { color: var(--fg-soft); font-size: 11px; font-variant-numeric: tabular-nums; }
+.conversation-changes { margin-top: 2px; padding-left: 16px; color: var(--fg-muted); font-size: 12px; line-height: 1.55; }
+.conversation-bubble { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); overflow: hidden; }
+.conversation-bubble .conversation-meta { min-height: 34px; padding: 4px 6px 4px 12px; background: var(--bg-subtle); border-bottom: 1px solid var(--border); }
+.conversation-content { padding: 10px 12px 12px; color: var(--fg); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.conversation-content > * + * { margin-top: 8px; }
+.conversation-content ul, .conversation-content ol { padding-left: 20px; }
+.conversation-content li + li { margin-top: 2px; }
+.conversation-content h1, .conversation-content h2, .conversation-content h3 { font-size: 14px; line-height: 1.35; }
+.conversation-content a { color: var(--fg-accent); text-decoration: underline; text-underline-offset: 2px; }
+.conversation-content code { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; font-size: 12px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1px 4px; }
+.conversation-content pre { overflow: auto; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
+.conversation-content pre code { background: transparent; border: none; padding: 0; }
+.conversation-content blockquote { border-left: 3px solid var(--border-strong); padding-left: 10px; color: var(--fg-muted); }
+.conversation-content img { max-width: 100%; border-radius: var(--radius-sm); }
+.conversation-actions { margin-left: auto; display: flex; gap: 2px; }
+.conversation-action { color: var(--fg-muted); font-size: 12px; border-radius: var(--radius-sm); padding: 3px 8px; }
 .conversation-action:hover { color: var(--fg); background: var(--bg-hover); }
-.conversation-editor { border-top: 1px solid var(--border); padding-top: 12px; }
-.conversation-editor textarea { width: 100%; min-height: 92px; resize: vertical; line-height: 1.55; }
-.conversation-editor-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.conversation-action.danger:hover { color: var(--overdue); background: var(--priority-high-bg); }
+@media (hover: hover) {
+  .conversation-actions { opacity: 0; transition: opacity .12s; }
+  .conversation-item:hover .conversation-actions, .conversation-actions:focus-within { opacity: 1; }
+}
+.conversation-editor { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-input); transition: border-color .15s, box-shadow .15s; }
+.conversation-editor:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(107,114,128,.15); }
+#task-modal .conversation-editor textarea { width: 100%; min-height: 76px; display: block; resize: vertical; padding: 10px 12px; border: none; background: transparent; box-shadow: none; line-height: 1.55; }
+.conversation-editor-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 6px 8px 8px 12px; }
+.conversation-editor-hint { flex: 1; color: var(--fg-soft); font-size: 11px; }
 
 /* Modal tabs */
 .modal-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 16px; gap: 0; }
@@ -587,13 +671,9 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .tab-counter:empty { display: none; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
-.danger-zone { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-top: 12px; background: var(--bg-subtle); }
-.danger-zone h4 { font-size: 12px; font-weight: 600; color: var(--overdue); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .3px; }
-.danger-zone p { font-size: 12px; color: var(--fg-muted); margin-bottom: 10px; }
 .task-info { font-size: 12px; color: var(--fg-muted); display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 6px; }
 .task-info dt { font-weight: 500; color: var(--fg-muted); }
 .task-info dd { margin-left: 0; color: var(--fg); min-width: 0; }
-.task-info dd .user-label + .user-label { margin-left: 8px; }
 
 /* View toggles */
 .view-toggles { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; height: 28px; }
@@ -672,8 +752,16 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
   .admin-panel { padding: 18px 14px; }
   .admin-panel-header { align-items: flex-start; flex-direction: column; }
   .admin-chart { min-width: 680px; }
+  .manage-key-head { align-items: flex-start; flex-direction: column; }
+  .manage-key-footer { flex-wrap: wrap; }
   .admin-chart-scroll { overflow-x: auto; padding-bottom: 6px; }
   #task-modal .modal { width: calc(100vw - 16px); height: calc(100vh - 16px); }
+  #task-modal .modal-body { display: block; overflow-y: auto; }
+  .task-title-input { padding: 14px 16px 8px; }
+  .task-main .modal-tabs { padding: 0 16px; }
+  .task-main-scroll { overflow: visible; padding: 16px; }
+  .task-side { border-left: none; border-top: 1px solid var(--border); }
+  .description-hint { visibility: hidden; }
   #settings-modal .modal { width: calc(100vw - 16px); }
   .modal-tabs { overflow-x: auto; }
 }
@@ -705,6 +793,10 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
       <button class="sidebar-home" id="btn-admin" onclick="showAdminDashboard()" hidden>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19V2"/><path d="M2 19h22"/></svg>
         <span>Dashboard</span>
+      </button>
+      <button class="sidebar-home" id="btn-manage" onclick="showAdminManagement()" hidden>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
+        <span>Administração</span>
       </button>
     </nav>
     <div class="sidebar-section-header">
@@ -743,6 +835,9 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
     <section class="admin-page hidden" id="admin-page" aria-labelledby="admin-title">
       <div class="admin-shell" id="admin-content"><div class="admin-empty">Carregando indicadores...</div></div>
     </section>
+    <section class="admin-page hidden" id="manage-page" aria-labelledby="manage-title">
+      <div class="admin-shell" id="manage-content"><div class="admin-empty">Carregando administração...</div></div>
+    </section>
     <div class="subtoolbar" id="subtoolbar" style="display:none">
       <div class="search-box" id="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -758,6 +853,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
         <option value="due">Agrupar: Prazo</option>
       </select>
       <div class="list-filters" id="list-filters" style="display:none">
+        <select class="list-filter" id="list-status-filter" aria-label="Filtrar por status"></select>
         <select class="list-filter" id="list-priority-filter"></select>
         <select class="list-filter" id="list-due-filter">
           <option value="">Prazo: Todos</option>
@@ -770,6 +866,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
         <select class="list-filter" id="list-group-filter"></select>
       </div>
       <div class="kanban-filters" id="kanban-filters" style="display:none">
+        <select class="kanban-filter" id="kanban-status-filter" aria-label="Filtrar por status"></select>
         <select class="kanban-filter" id="kanban-priority-filter"></select>
         <select class="kanban-filter" id="kanban-due-filter">
           <option value="">Prazo: Todos</option>
@@ -868,80 +965,89 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
       <h3 id="task-modal-title"><span id="task-modal-title-text">Nova Tarefa</span><span class="modal-title-muted" id="task-modal-task-id"></span></h3>
       <button class="modal-close" onclick="closeTaskModal()">&times;</button>
     </div>
-    <div class="modal-tabs" id="task-tabs">
-      <button class="modal-tab active" data-tab="content" onclick="switchTaskTab('content')">Visão geral</button>
-      <button class="modal-tab" data-tab="subtasks" onclick="switchTaskTab('subtasks')">Sub-tasks</button>
-      <button class="modal-tab" data-tab="details" onclick="switchTaskTab('details')">Detalhes</button>
-      <button class="modal-tab" data-tab="attachments" onclick="switchTaskTab('attachments')">Anexos</button>
-      <button class="modal-tab" data-tab="conversation" onclick="switchTaskTab('conversation')">Conversa<span class="tab-counter" id="conversation-tab-counter"></span></button>
-      <button class="modal-tab" data-tab="advanced" onclick="switchTaskTab('advanced')">Avançado</button>
-    </div>
     <div class="modal-body">
-      <div class="tab-panel active" id="tab-content">
-        <div class="form-group"><label>Título</label><input id="tf-title" placeholder="Título da tarefa"></div>
-        <div class="form-group description-group">
-          <div class="ai-actions-wrap">
-            <button class="ai-actions-trigger" id="btn-task-ai" type="button" onclick="toggleTaskAiMenu(event)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
-              Ações de IA
-            </button>
-            <div class="ai-actions-menu" id="task-ai-menu">
-              <button type="button" onclick="runTaskAi('summary')">Resumir</button>
-              <button type="button" onclick="runTaskAi('plan')">Criar plano de execução</button>
+      <div class="task-main">
+        <input class="task-title-input" id="tf-title" aria-label="Título" placeholder="Título da tarefa">
+        <div class="modal-tabs" id="task-tabs">
+          <button class="modal-tab active" data-tab="content" onclick="switchTaskTab('content')">Visão geral</button>
+          <button class="modal-tab" data-tab="subtasks" onclick="switchTaskTab('subtasks')">Sub-tasks</button>
+          <button class="modal-tab" data-tab="attachments" onclick="switchTaskTab('attachments')">Anexos</button>
+          <button class="modal-tab" data-tab="conversation" onclick="switchTaskTab('conversation')">Conversa<span class="tab-counter" id="conversation-tab-counter"></span></button>
+        </div>
+        <div class="task-main-scroll" id="task-main-scroll">
+          <div class="tab-panel active" id="tab-content">
+            <div class="form-group description-group">
+              <div class="description-header">
+                <label for="tf-desc">Descrição</label>
+                <span class="description-hint">Markdown · Tab indenta · Esc sai do editor</span>
+                <div class="ai-actions-wrap">
+                  <button class="ai-actions-trigger" id="btn-task-ai" type="button" onclick="toggleTaskAiMenu(event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+                    Ações de IA
+                  </button>
+                  <div class="ai-actions-menu" id="task-ai-menu">
+                    <button type="button" onclick="runTaskAi('summary')">Resumir</button>
+                    <button type="button" onclick="runTaskAi('plan')">Criar plano de execução</button>
+                  </div>
+                </div>
+              </div>
+              <div class="description-editor previewing" id="description-editor">
+                <textarea id="tf-desc" rows="16" placeholder="Descrição da tarefa"></textarea>
+                <div class="markdown-preview" id="tf-desc-preview" data-placeholder="Clique para descrever a tarefa" tabindex="0"></div>
+              </div>
             </div>
           </div>
-          <label>Descrição</label>
-          <div class="description-editor previewing" id="description-editor">
-            <textarea id="tf-desc" rows="16" placeholder="Descrição da tarefa"></textarea>
-            <div class="markdown-preview" id="tf-desc-preview" data-placeholder="Descrição da tarefa" tabindex="0"></div>
+          <div class="tab-panel" id="tab-subtasks">
+            <div class="subtask-heading"><strong>Tasks</strong><button class="btn-secondary" type="button" id="add-subtask">Adicionar item</button></div>
+            <p class="subtask-help">Arraste pela alça para ordenar. As alterações são aplicadas ao salvar a tarefa.</p>
+            <div id="subtask-editor"></div>
           </div>
-        </div>
-      </div>
-      <div class="tab-panel" id="tab-subtasks">
-        <div class="subtask-heading"><strong>Tasks</strong><button class="btn-secondary" type="button" id="add-subtask">Adicionar item</button></div>
-        <p class="subtask-help">Arraste pela alça para ordenar. As alterações são aplicadas ao salvar a tarefa.</p>
-        <div id="subtask-editor"></div>
-      </div>
-      <div class="tab-panel" id="tab-details">
-        <div class="form-row">
-          <div class="form-group"><label>Status</label><select id="tf-status"></select></div>
-          <div class="form-group"><label>Prioridade</label><select id="tf-priority"></select></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Prazo</label><input id="tf-due" type="date"></div>
-          <div class="form-group"><label>Grupo</label><input id="tf-group" list="tf-group-options" placeholder="Sprint, etc."><datalist id="tf-group-options"></datalist></div>
-        </div>
-        <div class="form-group"><label>Tags (separadas por vírgula)</label><input id="tf-tags" placeholder="tag1, tag2"><div class="tag-suggestions" id="tag-suggestions"></div></div>
-        <div class="form-group"><label>Responsáveis</label><div class="assignee-picker" id="tf-assignees"></div></div>
-        <div class="form-group"><label>Agente Responsável</label><input id="tf-agent" placeholder="Nome do agente"></div>
-      </div>
-      <div class="tab-panel" id="tab-attachments">
-        <div class="attachment-actions">
-          <input id="tf-attachments" type="file" multiple onchange="uploadSelectedTaskAttachments()">
-          <button class="btn-primary" onclick="openAttachmentPicker()">Adicionar</button>
-        </div>
-        <div class="attachment-list" id="attachment-list"></div>
-      </div>
-      <div class="tab-panel" id="tab-conversation">
-        <div class="conversation-layout">
-          <div class="conversation-list" id="conversation-list"></div>
-          <div class="conversation-editor">
-            <textarea id="comment-content" placeholder="Escreva um comentário em markdown"></textarea>
-            <div class="conversation-editor-actions">
-              <button class="btn-secondary" id="btn-cancel-comment-edit" onclick="cancelCommentEdit()" style="display:none">Cancelar edição</button>
-              <button class="btn-primary" id="btn-save-comment" onclick="saveTaskComment()">Comentar</button>
+          <div class="tab-panel" id="tab-attachments">
+            <div class="attachment-actions">
+              <strong class="task-section-title">Anexos</strong>
+              <input id="tf-attachments" type="file" multiple onchange="uploadSelectedTaskAttachments()">
+              <button class="btn-secondary" type="button" onclick="openAttachmentPicker()">Adicionar arquivo</button>
+            </div>
+            <div class="attachment-list" id="attachment-list"></div>
+          </div>
+          <div class="tab-panel" id="tab-conversation">
+            <div class="conversation-layout">
+              <div class="conversation-list" id="conversation-list"></div>
+              <div class="conversation-editor">
+                <textarea id="comment-content" aria-label="Comentário" placeholder="Escreva um comentário"></textarea>
+                <div class="conversation-editor-actions">
+                  <span class="conversation-editor-hint">Markdown · Ctrl+Enter para enviar</span>
+                  <button class="btn-secondary" id="btn-cancel-comment-edit" onclick="cancelCommentEdit()" style="display:none">Cancelar edição</button>
+                  <button class="btn-primary" id="btn-save-comment" onclick="saveTaskComment()">Comentar</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="tab-panel" id="tab-advanced">
+      <aside class="task-side" aria-labelledby="task-side-title">
+        <div class="task-side-title" id="task-side-title">Detalhes</div>
+        <div class="task-archived-note" id="task-archived-note" hidden>Esta tarefa está arquivada e não aparece nas listas.</div>
+        <div class="task-props">
+          <label for="tf-status">Status</label><select id="tf-status"></select>
+          <label for="tf-priority">Prioridade</label><select id="tf-priority"></select>
+          <label for="tf-due">Prazo</label><input id="tf-due" type="date">
+          <span id="tf-assignees-label">Responsáveis</span><div class="assignee-picker" id="tf-assignees" role="group" aria-labelledby="tf-assignees-label"></div>
+          <label for="tf-tags-entry">Tags</label>
+          <div class="tag-field">
+            <div class="tag-editor" id="tag-editor"><input id="tf-tags-entry" autocomplete="off" placeholder="Adicionar tag"></div>
+            <input id="tf-tags" type="hidden">
+            <div class="tag-suggestions" id="tag-suggestions" aria-label="Tags sugeridas"></div>
+          </div>
+          <label for="tf-group">Grupo</label><input id="tf-group" list="tf-group-options" placeholder="Sprint, etc."><datalist id="tf-group-options"></datalist>
+          <label for="tf-agent">Agente</label><input id="tf-agent" placeholder="Nome do agente">
+        </div>
         <dl class="task-info" id="task-info-dl"></dl>
-        <div class="danger-zone" id="danger-zone" style="display:none">
-          <h4>Zona de Perigo</h4>
-          <p>Excluir esta tarefa é permanente. Todos os anexos associados também serão removidos.</p>
-          <button class="btn-danger" onclick="deleteCurrentTask()">Excluir tarefa</button>
+        <div id="danger-zone" style="display:none">
+          <button type="button" class="task-archive-btn" id="btn-archive-task" onclick="setTaskArchived(state.editingTaskId, !state.tasks.find(t => t.id === state.editingTaskId)?.archivedAt)">Arquivar tarefa</button>
+          <button type="button" onclick="deleteCurrentTask()">Excluir tarefa</button>
         </div>
-      </div>
+      </aside>
     </div>
     <div class="modal-footer">
       <div class="copy-menu-wrap" id="task-copy-wrap" style="display:none">
@@ -1046,6 +1152,27 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
   </div>
 </div>
 
+<!-- User Modal -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="user-modal-title">Novo usuário</h3>
+      <button class="modal-close" onclick="closeUserModal()">&times;</button>
+    </div>
+    <form class="modal-body" id="user-form">
+      <div class="form-group"><label for="um-name">Nome</label><input id="um-name" maxlength="80" autocomplete="off" required></div>
+      <div class="form-group"><label for="um-id">ID</label><input id="um-id" maxlength="64" autocomplete="off" placeholder="Gerado a partir do nome"><small class="form-hint">Identificador estável usado em permissões. Não pode ser alterado depois.</small></div>
+      <div class="form-group"><label for="um-pin">PIN de 6 dígitos</label><input id="um-pin" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="Gerado automaticamente"></div>
+      <label class="checkbox-field"><input type="checkbox" id="um-admin"> Administrador (acesso a todos os projetos e à administração)</label>
+      <button type="submit" hidden></button>
+    </form>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn-primary" id="um-save" onclick="saveUser()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SEARCH_DEBOUNCE_MS = 450;
 
@@ -1057,6 +1184,9 @@ const state = {
   admin: null,
   analyticsFilters: { days: 30, project: "", user: "" },
   adminRequestId: 0,
+  manage: null,
+  manageRevealed: new Set(),
+  editingUserId: null,
   activeSection: "tasks",
   tasks: [],
   settings: null,
@@ -1071,11 +1201,13 @@ const state = {
   taskSearchRequestId: 0,
   collapsedGroups: new Map(),
   listFilters: {
+    status: "",
     priority: "",
     due: "",
     group: ""
   },
   kanbanFilters: {
+    status: "",
     priority: "",
     due: "",
     group: ""
@@ -1146,7 +1278,7 @@ async function api(path, options = {}) {
       location.href = "/";
     }
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Request failed");
+    throw new Error(err.error || `Request failed (HTTP ${res.status})`);
   }
   return res.json();
 }
@@ -1158,6 +1290,7 @@ async function loadAuthStatus() {
   state.authUserName = data.user?.name || null;
   state.authUsers = (data.users || []).map(user => user.name).filter(Boolean);
   document.getElementById("btn-admin").hidden = !state.authUser?.isAdmin;
+  document.getElementById("btn-manage").hidden = !state.authUser?.isAdmin;
 }
 
 // Projects
@@ -1431,6 +1564,235 @@ function updateAdminFilter(filter, value) {
   loadAdminDashboard();
 }
 
+async function showAdminManagement() {
+  if (!state.authUser?.isAdmin) {
+    await showHome();
+    return;
+  }
+  state.currentView = "manage";
+  state.currentProject = null;
+  document.getElementById("toolbar-title").textContent = "Administração";
+  renderProjects();
+  updateProjectSectionUi();
+  await loadAdminManagement();
+}
+
+async function loadAdminManagement() {
+  try {
+    const [users, settings, projects] = await Promise.all([api("/admin/users"), api("/admin/settings"), api("/admin/projects")]);
+    state.manage = { users: users.users || [], aivax: settings.aivax, projects: projects.projects || [] };
+    renderAdminManagement();
+  } catch (error) {
+    document.getElementById("manage-content").innerHTML = `<div class="admin-empty admin-error"><div>Não foi possível carregar a administração.<br>${esc(error.message)}<br><button class="btn-secondary" onclick="loadAdminManagement()">Tentar novamente</button></div></div>`;
+  }
+}
+
+function renderAdminManagement() {
+  const { users, aivax, projects } = state.manage;
+  const projectRows = projects.map(project => `<tr${project.archivedAt ? ' class="manage-archived"' : ""}>
+      <td><div class="manage-user"><strong>${esc(project.displayName)}</strong><span>${esc(project.name)}</span></div></td>
+      <td>${project.pendingTasksCount} pendentes · ${project.tasksCount} no total</td>
+      <td><span class="manage-role">${project.archivedAt ? `Arquivado em ${esc(formatDate(project.archivedAt))}` : "Ativo"}</span></td>
+      <td class="manage-actions"><button class="btn-secondary" data-project="${attrValue(project.name)}" onclick="setProjectArchived(this.dataset.project, ${!project.archivedAt})">${project.archivedAt ? "Desarquivar" : "Arquivar"}</button></td>
+    </tr>`).join("");
+  const eyeIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const copyIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const secret = (user, field, label) => {
+    const shown = state.manageRevealed.has(`${user.id}:${field}`);
+    return `<span class="secret-cell">
+      <code class="secret-value${field === "mcpKey" ? " key" : ""}" title="${shown ? attrValue(user[field]) : ""}">${shown ? esc(user[field]) : "••••••"}</code>
+      <button class="settings-icon-btn" data-user="${attrValue(user.id)}" onclick="toggleUserSecret(this.dataset.user, '${field}')" title="${shown ? "Ocultar" : "Mostrar"} ${label}" aria-label="${shown ? "Ocultar" : "Mostrar"} ${label} de ${attrValue(user.name)}">${eyeIcon}</button>
+      <button class="settings-icon-btn" data-user="${attrValue(user.id)}" onclick="copyUserSecret(this.dataset.user, '${field}')" title="Copiar ${label}" aria-label="Copiar ${label} de ${attrValue(user.name)}">${copyIcon}</button>
+    </span>`;
+  };
+  const rows = users.map(user => {
+    const isSelf = user.id === state.authUser?.id;
+    return `<tr>
+      <td><div class="manage-user"><strong>${esc(user.name)}${isSelf ? " (você)" : ""}</strong><span>${esc(user.id)}</span></div></td>
+      <td><span class="manage-role${user.isAdmin ? " admin" : ""}">${user.isAdmin ? "Administrador" : "Membro"}</span></td>
+      <td>${secret(user, "pin", "PIN")}</td>
+      <td>${secret(user, "mcpKey", "chave MCP")}</td>
+      <td class="manage-actions">
+        <button class="settings-icon-btn" data-user="${attrValue(user.id)}" onclick="openUserModal(this.dataset.user)" title="Editar usuário" aria-label="Editar ${attrValue(user.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        <button class="settings-icon-btn" data-user="${attrValue(user.id)}" onclick="rotateUserMcpKey(this.dataset.user)" title="Rotacionar chave MCP" aria-label="Rotacionar chave MCP de ${attrValue(user.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <button class="settings-icon-btn danger" data-user="${attrValue(user.id)}" onclick="deleteUser(this.dataset.user)" title="${isSelf ? "Você não pode excluir seu próprio usuário" : "Excluir usuário"}" aria-label="Excluir ${attrValue(user.name)}" ${isSelf ? "disabled" : ""}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("manage-content").innerHTML = `
+    <header class="admin-header">
+      <div>
+        <div class="admin-kicker">Administração</div>
+        <h1 id="manage-title">Usuários, projetos e chaves</h1>
+      </div>
+    </header>
+    <section class="admin-panel" aria-labelledby="manage-users-heading">
+      <div class="admin-panel-header">
+        <div><h2 id="manage-users-heading">Usuários</h2><p class="admin-panel-note">O PIN dá acesso à interface. A chave MCP autentica agentes em <code>${esc(location.origin)}/mcp</code> com <code>Authorization: Bearer</code>.</p></div>
+        <div class="manage-panel-actions"><button class="btn-primary" onclick="openUserModal()">+ Usuário</button></div>
+      </div>
+      <div class="admin-table-wrap"><table class="manage-table"><thead><tr><th>Usuário</th><th>Papel</th><th>PIN</th><th>Chave MCP</th><th class="manage-actions">Ações</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </section>
+    <section class="admin-panel" aria-labelledby="manage-projects-heading">
+      <div class="admin-panel-header">
+        <div><h2 id="manage-projects-heading">Projetos</h2><p class="admin-panel-note">Projetos arquivados somem da barra lateral, da Home e do MCP e ficam inacessíveis até serem desarquivados. Nada é excluído.</p></div>
+      </div>
+      ${projects.length ? `<div class="admin-table-wrap"><table class="manage-table"><thead><tr><th>Projeto</th><th>Tarefas</th><th>Situação</th><th class="manage-actions">Ações</th></tr></thead><tbody>${projectRows}</tbody></table></div>` : '<p class="admin-panel-note">Nenhum projeto criado.</p>'}
+    </section>
+    <section class="admin-panel" aria-labelledby="manage-keys-heading">
+      <div class="admin-panel-header">
+        <div><h2 id="manage-keys-heading">Chaves de API</h2><p class="admin-panel-note">Usadas pelos recursos de IA: briefing diário, resumos, ações de tarefas e busca semântica.</p></div>
+      </div>
+      <div class="manage-key-head">
+        <div><strong>AIVAX</strong><span>${aivax.configured ? `Chave atual: <code>${esc(aivax.maskedKey)}</code>` : "Nenhuma chave definida. Os recursos de IA ficam indisponíveis."}</span></div>
+        <span class="manage-key-status${aivax.configured ? " configured" : ""}">${aivax.configured ? "Configurada" : "Não configurada"}</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label for="manage-aivax-key">${aivax.configured ? "Substituir chave" : "Chave da API"}</label><input id="manage-aivax-key" type="password" autocomplete="off" placeholder="Cole a chave da AIVAX"></div>
+        <div class="form-group"><label for="manage-aivax-model">Modelo</label><input id="manage-aivax-model" autocomplete="off" value="${attrValue(aivax.model)}" placeholder="${attrValue(aivax.defaultModel)}"></div>
+      </div>
+      <div class="manage-key-footer">
+        ${aivax.configured ? '<button class="btn-secondary" onclick="removeAivaxKey()">Remover chave</button>' : ""}
+        <button class="btn-primary" id="manage-aivax-save" onclick="saveAivaxSettings()">Salvar</button>
+      </div>
+    </section>`;
+}
+
+async function setProjectArchived(name, archived) {
+  if (archived && !confirm("Arquivar este projeto? Ele deixará de aparecer para todos até ser desarquivado.")) return;
+  try {
+    await api(`/admin/projects/${enc(name)}`, { method: "PUT", body: { archived } });
+    await Promise.all([loadProjects(), loadAdminManagement()]);
+    showToast(archived ? "Projeto arquivado." : "Projeto desarquivado.");
+  } catch (error) {
+    alert("Erro: " + error.message);
+  }
+}
+
+function managedUser(userId) {
+  return state.manage?.users.find(user => user.id === userId) || null;
+}
+
+function toggleUserSecret(userId, field) {
+  const key = `${userId}:${field}`;
+  if (state.manageRevealed.has(key)) state.manageRevealed.delete(key);
+  else state.manageRevealed.add(key);
+  renderAdminManagement();
+}
+
+async function copyUserSecret(userId, field) {
+  const user = managedUser(userId);
+  if (!user) return;
+  await copyText(user[field]);
+  showToast(field === "pin" ? "PIN copiado." : "Chave MCP copiada.");
+}
+
+function openUserModal(userId = null) {
+  const user = userId ? managedUser(userId) : null;
+  state.editingUserId = user?.id || null;
+  document.getElementById("user-modal-title").textContent = user ? `Editar ${user.name}` : "Novo usuário";
+  document.getElementById("um-name").value = user?.name || "";
+  document.getElementById("um-id").value = user?.id || "";
+  document.getElementById("um-id").disabled = Boolean(user);
+  document.getElementById("um-pin").value = user?.pin || "";
+  document.getElementById("um-pin").placeholder = user ? "" : "Gerado automaticamente";
+  document.getElementById("um-admin").checked = Boolean(user?.isAdmin);
+  document.getElementById("um-admin").disabled = user?.id === state.authUser?.id;
+  document.getElementById("user-modal").classList.add("open");
+  setTimeout(() => document.getElementById("um-name").focus(), 100);
+}
+
+function closeUserModal() {
+  document.getElementById("user-modal").classList.remove("open");
+  state.editingUserId = null;
+}
+
+async function saveUser() {
+  const pin = document.getElementById("um-pin").value.trim();
+  const body = {
+    name: document.getElementById("um-name").value.trim(),
+    isAdmin: document.getElementById("um-admin").checked
+  };
+  if (!body.name) { alert("Informe o nome do usuário."); return; }
+  if (pin && !/^\d{6}$/.test(pin)) { alert("O PIN deve ter exatamente 6 dígitos."); return; }
+  if (pin) body.pin = pin;
+  const isNew = !state.editingUserId;
+  if (isNew && document.getElementById("um-id").value.trim()) body.id = document.getElementById("um-id").value.trim();
+  if (!isNew && !body.pin) { alert("Informe o PIN do usuário."); return; }
+
+  const button = document.getElementById("um-save");
+  button.disabled = true;
+  try {
+    const saved = await api(isNew ? "/admin/users" : `/admin/users/${encodeURIComponent(state.editingUserId)}`, { method: isNew ? "POST" : "PUT", body });
+    closeUserModal();
+    if (isNew) {
+      state.manageRevealed.add(`${saved.id}:pin`);
+      state.manageRevealed.add(`${saved.id}:mcpKey`);
+    }
+    await loadAuthStatus();
+    await loadAdminManagement();
+    showToast(isNew ? `${saved.name} foi criado.` : "Usuário atualizado.");
+  } catch (e) {
+    alert("Erro: " + e.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function rotateUserMcpKey(userId) {
+  const user = managedUser(userId);
+  if (!user || !confirm(`Gerar uma nova chave MCP para ${user.name}?\n\nA chave atual deixa de funcionar imediatamente.`)) return;
+  try {
+    await api(`/admin/users/${encodeURIComponent(userId)}`, { method: "PUT", body: { rotateMcpKey: true } });
+    state.manageRevealed.add(`${userId}:mcpKey`);
+    await loadAdminManagement();
+    showToast("Nova chave MCP gerada.");
+  } catch (e) {
+    alert("Erro: " + e.message);
+  }
+}
+
+async function deleteUser(userId) {
+  const user = managedUser(userId);
+  if (!user || !confirm(`Excluir ${user.name}?\n\nO PIN e a chave MCP deixam de funcionar. O histórico de atividades é preservado.`)) return;
+  try {
+    await api(`/admin/users/${encodeURIComponent(userId)}`, { method: "DELETE" });
+    await loadAuthStatus();
+    await loadAdminManagement();
+    showToast("Usuário excluído.");
+  } catch (e) {
+    alert("Erro: " + e.message);
+  }
+}
+
+async function saveAivaxSettings() {
+  const key = document.getElementById("manage-aivax-key").value.trim();
+  const body = { aivaxModel: document.getElementById("manage-aivax-model").value.trim() };
+  if (key) body.aivaxApiKey = key;
+  const button = document.getElementById("manage-aivax-save");
+  button.disabled = true;
+  try {
+    state.manage.aivax = (await api("/admin/settings", { method: "PUT", body })).aivax;
+    renderAdminManagement();
+    showToast("Configurações da AIVAX salvas.");
+  } catch (e) {
+    alert("Erro: " + e.message);
+    button.disabled = false;
+  }
+}
+
+async function removeAivaxKey() {
+  if (!confirm("Remover a chave da AIVAX?\n\nOs recursos de IA ficarão indisponíveis até uma nova chave ser definida.")) return;
+  try {
+    state.manage.aivax = (await api("/admin/settings", { method: "PUT", body: { aivaxApiKey: "" } })).aivax;
+    renderAdminManagement();
+    showToast("Chave da AIVAX removida.");
+  } catch (e) {
+    alert("Erro: " + e.message);
+  }
+}
+
 function adminBreakdownTable(rows, emptyMessage) {
   if (rows.length === 0) return `<div class="admin-empty compact">${esc(emptyMessage)}</div>`;
   const numberFormat = new Intl.NumberFormat("pt-BR");
@@ -1522,6 +1884,8 @@ function updateProjectSectionUi() {
   document.getElementById("btn-admin").classList.toggle("active", state.currentView === "admin");
   document.getElementById("home-page").classList.toggle("hidden", state.currentView !== "home");
   document.getElementById("admin-page").classList.toggle("hidden", state.currentView !== "admin");
+  document.getElementById("btn-manage").classList.toggle("active", state.currentView === "manage");
+  document.getElementById("manage-page").classList.toggle("hidden", state.currentView !== "manage");
   document.getElementById("project-tabs").style.display = hasProject ? "" : "none";
   document.querySelectorAll(".project-tab").forEach(button => button.classList.toggle("active", button.dataset.section === state.activeSection));
   document.getElementById("view-toggles").style.display = hasProject && state.activeSection === "tasks" ? "" : "none";
@@ -1653,19 +2017,35 @@ function renderAssigneePicker(selected = []) {
 function selectedAssignees() {
   return [...document.querySelectorAll("#tf-assignees input:checked")].map(input => input.value);
 }
-function renderTaskTagSuggestions() {
-  const container = document.getElementById("tag-suggestions");
-  const input = document.getElementById("tf-tags");
-  if (!container || !input) return;
+function taskTags() {
+  return document.getElementById("tf-tags").value.split(",").map(tag => tag.trim()).filter(Boolean);
+}
 
-  const parts = input.value.split(",");
-  const query = parts.pop().trim().toLowerCase();
-  const selected = new Set(parts.map(tag => tag.trim().toLowerCase()).filter(Boolean));
-  const tags = [...new Set(state.tasks.flatMap(task => task.tags || []).map(tag => String(tag).trim()).filter(Boolean))]
-    .filter(tag => !selected.has(tag.toLowerCase()) && tag.toLowerCase().includes(query))
-    .sort((a, b) => a.localeCompare(b)).slice(0, 12);
-  container.innerHTML = tags.map(tag => `
-    <button type="button" class="tag-suggestion" style="--tag-h:${tagHue(tag)}" data-tag="${esc(tag)}"${selected.has(tag.toLowerCase()) ? " disabled" : ""}>${esc(tag)}</button>
+function setTaskTags(tags) {
+  const unique = new Map(tags.map(tag => tag.trim()).filter(Boolean).map(tag => [tag.toLowerCase(), tag]));
+  document.getElementById("tf-tags").value = [...unique.values()].join(", ");
+  renderTaskTagSuggestions();
+}
+
+function renderTaskTagSuggestions() {
+  const entry = document.getElementById("tf-tags-entry");
+  const selected = taskTags();
+  const selectedKeys = new Set(selected.map(tag => tag.toLowerCase()));
+  const query = entry.value.trim().toLowerCase();
+  document.querySelectorAll("#tag-editor .tag-chip").forEach(chip => chip.remove());
+  entry.insertAdjacentHTML("beforebegin", selected.map(tag => `
+    <span class="tag tag-chip" data-h="" style="--tag-h:${tagHue(tag)}">${esc(tag)}<button type="button" data-remove-tag="${esc(tag)}" aria-label="Remover tag ${esc(tag)}">×</button></span>
+  `).join(""));
+  entry.placeholder = selected.length ? "" : "Adicionar tag";
+
+  const counts = new Map();
+  state.tasks.flatMap(task => task.tags || []).map(tag => String(tag).trim()).filter(Boolean)
+    .forEach(tag => counts.set(tag, (counts.get(tag) || 0) + 1));
+  const tags = [...counts.keys()]
+    .filter(tag => !selectedKeys.has(tag.toLowerCase()) && tag.toLowerCase().includes(query))
+    .sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b)).slice(0, 8);
+  document.getElementById("tag-suggestions").innerHTML = tags.map(tag => `
+    <button type="button" class="tag-suggestion" style="--tag-h:${tagHue(tag)}" data-tag="${esc(tag)}">${esc(tag)}</button>
   `).join("");
 }
 function unreadCommentCount(task) {
@@ -1729,6 +2109,7 @@ function renderTaskRow(task) {
       <div class="task-row-meta">
         ${assignees}
         ${dueBadge}
+        ${task.archivedAt ? `<button class="btn-secondary task-unarchive" onclick="event.stopPropagation(); setTaskArchived(${task.id}, false)">Desarquivar</button>` : ""}
       </div>
     </div>`;
 }
@@ -1902,6 +2283,8 @@ async function onDrop(e) {
 
 function filterTasks(tasks, filters) {
   return tasks.filter(t => {
+    if (Boolean(t.archivedAt) !== (filters.status === ARCHIVED_FILTER)) return false;
+    if (filters.status && filters.status !== ARCHIVED_FILTER && t.status !== filters.status) return false;
     if (filters.priority && t.priority !== filters.priority) return false;
     if (filters.group && (t.group || "__none") !== filters.group) return false;
     if (filters.due) {
@@ -2027,9 +2410,23 @@ function populateKanbanFilters() {
   populateTaskFilters("kanban", state.kanbanFilters);
 }
 
+const ARCHIVED_FILTER = "__archived";
+
 function populateTaskFilters(prefix, filters) {
   if (!state.settings) return;
   if (!state.settings.priorities.includes(filters.priority)) filters.priority = "";
+
+  const archivedCount = state.tasks.filter(task => task.archivedAt).length;
+  fillTaskFilter(
+    `${prefix}-status-filter`,
+    [
+      { value: "", label: "Status: Todos" },
+      ...state.settings.statuses.map(s => ({ value: s, label: `Status: ${s}` })),
+      ...(archivedCount ? [{ value: ARCHIVED_FILTER, label: `Status: Arquivadas (${archivedCount})` }] : [])
+    ],
+    filters.status
+  );
+  filters.status = document.getElementById(`${prefix}-status-filter`).value;
 
   fillTaskFilter(
     `${prefix}-priority-filter`,
@@ -2056,6 +2453,16 @@ function fillTaskFilter(id, options, value) {
 function labelGroup(value) {
   return value === "__none" ? "Sem grupo" : value;
 }
+
+document.getElementById("kanban-status-filter").onchange = (e) => {
+  state.kanbanFilters.status = e.target.value;
+  renderTasks();
+};
+
+document.getElementById("list-status-filter").onchange = (e) => {
+  state.listFilters.status = e.target.value;
+  renderTasks();
+};
 
 document.getElementById("kanban-priority-filter").onchange = (e) => {
   state.kanbanFilters.priority = e.target.value;
@@ -2672,6 +3079,7 @@ function openTaskContextMenu(event, taskId) {
   html += `<button data-action="due" data-value="${tomorrow}">Amanhã</button>`;
   html += `<button data-action="due" data-value="${week}">7 dias</button>`;
   html += `<button data-action="due" data-value="${month}">30 dias</button></div></div>`;
+  html += `<button data-action="archive" data-value="${task.archivedAt ? "" : "1"}">${task.archivedAt ? "Desarquivar tarefa" : "Arquivar tarefa"}</button>`;
   menu.innerHTML = html;
   menu.style.left = `${event.clientX}px`;
   menu.style.top = `${event.clientY}px`;
@@ -2687,6 +3095,17 @@ function dueDateFromNow(days) {
   return d.toISOString().slice(0, 10);
 }
 
+async function setTaskArchived(taskId, archived) {
+  try {
+    await api(`/projects/${enc(state.currentProject)}/tasks/${taskId}`, { method: "PUT", body: { archived } });
+    if (state.editingTaskId === taskId) closeTaskModal();
+    await refreshAll();
+    showToast(archived ? `Tarefa #${taskId} arquivada.` : `Tarefa #${taskId} desarquivada.`);
+  } catch (e) {
+    alert("Erro: " + e.message);
+  }
+}
+
 function closeTaskContextMenu() {
   document.getElementById("task-context-menu").classList.remove("open");
 }
@@ -2694,6 +3113,7 @@ function closeTaskContextMenu() {
 async function handleTaskContextAction(action, value, taskId) {
   closeTaskContextMenu();
   if (action === "open") { openTaskModal(taskId); return; }
+  if (action === "archive") { await setTaskArchived(taskId, value === "1"); return; }
   if (!["status", "priority", "group", "due"].includes(action)) return;
   try {
     await api(`/projects/${enc(state.currentProject)}/tasks/${taskId}`, { method: "PUT", body: { [action]: value || null } });
@@ -2979,7 +3399,7 @@ function renderSubTasks() {
     });
   }
   const items = state.subTasks || [];
-  summary.innerHTML = `<div class="attachment-actions"><strong>Sub-tasks · ${items.filter(item => item.completed).length}/${items.length}</strong><button class="btn-secondary" type="button" onclick="switchTaskTab('subtasks')">Editar checklist</button></div>` +
+  summary.innerHTML = `<div class="attachment-actions"><strong class="task-section-title">Sub-tasks · ${items.filter(item => item.completed).length}/${items.length}</strong><button class="btn-secondary" type="button" onclick="switchTaskTab('subtasks')">Editar checklist</button></div>` +
     (items.length ? items.map((item, index) => `<label class="subtask-summary-row"><input type="checkbox" data-index="${index}" ${item.completed ? "checked" : ""}><span>${esc(item.title)}${item.description ? `<small>${esc(item.description)}</small>` : ""}</span></label>`).join("") : '<p class="subtask-help">Nenhuma sub-task. Adicione etapas menores para acompanhar o progresso.</p>');
   document.getElementById("subtask-editor").innerHTML = items.map((item, index) => `<div class="subtask-row" data-index="${index}">
     <input type="checkbox" data-field="completed" aria-label="Concluída" ${item.completed ? "checked" : ""}>
@@ -3063,13 +3483,13 @@ function switchTaskTab(name) {
   document.querySelectorAll("#task-tabs .modal-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
   document.querySelectorAll("#task-modal .tab-panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
   const overview = document.getElementById("tab-content");
-  for (const section of ["details", "attachments", "conversation"]) {
+  for (const section of ["attachments", "conversation"]) {
     const panel = document.getElementById(`tab-${section}`);
     if (name === "content") {
       overview.append(panel);
       panel.classList.add("active", "overview-section");
     } else {
-      document.querySelector("#task-modal .modal-body").insertBefore(panel, document.getElementById("tab-advanced"));
+      document.getElementById("task-main-scroll").append(panel);
       panel.classList.remove("overview-section");
     }
   }
@@ -3091,6 +3511,7 @@ function openTaskModal(taskId) {
   closeTaskAiMenu();
   closeTaskCopyMenu();
   populateFormSelects();
+  document.getElementById("tf-tags-entry").value = "";
 
   if (isEdit) {
     const task = state.tasks.find(t => t.id === taskId);
@@ -3133,14 +3554,14 @@ function openTaskModal(taskId) {
     updateConversationBadge(null);
     document.getElementById("tf-attachments").value = "";
     document.getElementById("danger-zone").style.display = "none";
+    document.getElementById("task-archived-note").hidden = true;
   }
 
   document.getElementById("btn-save-comment").disabled = !isEdit;
   document.getElementById("comment-content").disabled = !isEdit;
-  document.getElementById("comment-content").placeholder = isEdit ? "Escreva um comentário em markdown" : "Salve a tarefa para comentar";
+  document.getElementById("comment-content").placeholder = isEdit ? "Escreva um comentário" : "Salve a tarefa para comentar";
   document.getElementById("task-tabs").style.display = "";
   document.querySelector('#task-tabs [data-tab="conversation"]').style.display = isEdit ? "" : "none";
-  document.querySelector('#task-tabs [data-tab="advanced"]').style.display = isEdit ? "" : "none";
   switchTaskTab("content");
   document.getElementById("task-modal").classList.add("open");
   setTimeout(() => document.getElementById("tf-title").focus(), 100);
@@ -3291,15 +3712,13 @@ function taskAttachmentUrl(attachmentId) {
 function renderTaskInfo(task) {
   const dl = document.getElementById("task-info-dl");
   dl.innerHTML = `
-    <dt>ID</dt><dd>#${task.id}</dd>
     ${task.createdBy ? `<dt>Criada por</dt><dd>${userLabelHtml(task.createdBy)}</dd>` : ""}
-    <dt>Responsáveis</dt><dd>${task.assignees?.length ? task.assignees.map(userLabelHtml).join("") : "Nenhum"}</dd>
-    <dt>Criado em</dt><dd>${formatDate(task.createdAt)}</dd>
-    <dt>Atualizado em</dt><dd>${formatDate(task.updatedAt)}</dd>
-    <dt>Anexos</dt><dd>${task.attachments?.length || 0}</dd>
-    ${task.workingAgent ? `<dt>Agente</dt><dd>${esc(task.workingAgent)}</dd>` : ""}
+    <dt>Criada em</dt><dd>${formatDate(task.createdAt)}</dd>
+    <dt>Atualizada em</dt><dd>${formatDate(task.updatedAt)}</dd>
   `;
   document.getElementById("danger-zone").style.display = "";
+  document.getElementById("task-archived-note").hidden = !task.archivedAt;
+  document.getElementById("btn-archive-task").textContent = task.archivedAt ? "Desarquivar tarefa" : "Arquivar tarefa";
 }
 
 function renderTaskAttachments(task) {
@@ -3370,34 +3789,53 @@ function renderTaskConversation() {
     return;
   }
   list.innerHTML = state.taskConversation.map(event => {
-    const isOwnComment = event.type === "comment" && event.userName === state.authUserName;
-    return `
-      <div class="conversation-item" data-type="${esc(event.type)}">
-        <div class="conversation-meta">
-          <span class="conversation-user">${userLabelHtml(event.userName)}</span>
-          <span class="conversation-type">${esc(conversationTypeLabel(event.type))}</span>
-          <span>${formatDate(event.createdAt)}${event.updatedAt !== event.createdAt && event.type === "comment" ? " · editado" : ""}</span>
-        </div>
-        <div class="conversation-content">${conversationEventHtml(event)}</div>
-        ${isOwnComment ? `
-          <div class="conversation-actions">
-            <button class="conversation-action" onclick="startCommentEdit(${event.id})">Editar</button>
-            <button class="conversation-action" onclick="deleteTaskComment(${event.id})">Excluir</button>
+    const userName = String(event.userName || "").trim() || "Sistema";
+    const time = `<span class="conversation-time">${formatDate(event.createdAt)}</span>`;
+
+    if (event.type !== "comment") {
+      return `
+        <div class="conversation-item" data-type="${esc(event.type)}">
+          <span class="conversation-marker"></span>
+          <div>
+            <div class="conversation-meta"><span class="conversation-user">${esc(userName)}</span><span>${esc(conversationActivityLabel(event))}</span>${time}</div>
+            ${conversationEventHtml(event)}
           </div>
-        ` : ""}
+        </div>
+      `;
+    }
+
+    const isOwnComment = event.userName === state.authUserName;
+    return `
+      <div class="conversation-item" data-type="comment">
+        <span class="conversation-marker">${userAvatarHtml(userName)}</span>
+        <div class="conversation-bubble">
+          <div class="conversation-meta">
+            <span class="conversation-user">${esc(userName)}</span>${time}
+            ${event.updatedAt !== event.createdAt ? '<span class="conversation-time">· editado</span>' : ""}
+            ${isOwnComment ? `
+              <div class="conversation-actions">
+                <button class="conversation-action" onclick="startCommentEdit(${event.id})">Editar</button>
+                <button class="conversation-action danger" onclick="deleteTaskComment(${event.id})">Excluir</button>
+              </div>
+            ` : ""}
+          </div>
+          <div class="conversation-content">${conversationEventHtml(event)}</div>
+        </div>
       </div>
     `;
   }).join("");
+  if (document.querySelector('#task-tabs [data-tab="conversation"]').classList.contains("active")) list.scrollTop = list.scrollHeight;
 }
 
-function conversationTypeLabel(type) {
-  return {
-    created: "criação",
-    updated: "atualização",
-    attachment_added: "anexo",
-    attachment_removed: "anexo",
-    comment: "comentário"
-  }[type] || type;
+function conversationActivityLabel(event) {
+  const attachments = event.data?.attachments?.length || 0;
+  if (event.type === "created") return "criou a tarefa";
+  if (event.type === "updated") return "atualizou a tarefa";
+  if (event.type === "archived") return "arquivou a tarefa";
+  if (event.type === "unarchived") return "desarquivou a tarefa";
+  if (event.type === "attachment_added") return attachments > 1 ? `adicionou ${attachments} anexos` : "adicionou um anexo";
+  if (event.type === "attachment_removed") return event.data?.attachment ? `removeu o anexo “${event.data.attachment.name}”` : "removeu um anexo";
+  return event.content || event.type;
 }
 
 function taskChangeDescriptions(change) {
@@ -3429,12 +3867,9 @@ function conversationEventHtml(event) {
     return `<ul class="conversation-changes">${event.data.changes.flatMap(taskChangeDescriptions).map(description => `<li>${esc(description)}</li>`).join("")}</ul>`;
   }
   if (event.type === "attachment_added" && event.data?.attachments?.length) {
-    return `<p>${esc(event.content)}</p><ul class="conversation-changes">${event.data.attachments.map(attachment => `<li>${esc(attachment.name)}</li>`).join("")}</ul>`;
+    return `<ul class="conversation-changes">${event.data.attachments.map(attachment => `<li>${esc(attachment.name)}</li>`).join("")}</ul>`;
   }
-  if (event.type === "attachment_removed" && event.data?.attachment) {
-    return `<p>${esc(event.content)} ${esc(event.data.attachment.name)}</p>`;
-  }
-  return `<p>${esc(event.content)}</p>`;
+  return "";
 }
 
 function startCommentEdit(id) {
@@ -3908,22 +4343,45 @@ function populateTaskGroupDatalist() {
   options.innerHTML = groups.map(group => `<option value="${esc(group)}"></option>`).join("");
 }
 
-document.getElementById("tf-tags").addEventListener("input", renderTaskTagSuggestions);
-document.getElementById("tag-suggestions").addEventListener("click", (event) => {
-  const button = event.target.closest(".tag-suggestion");
-  if (!button || button.disabled) return;
-
-  const input = document.getElementById("tf-tags");
-  const tag = button.dataset.tag || "";
-  const parts = input.value.split(",");
-  parts.pop();
-  const tags = parts.map(value => value.trim()).filter(Boolean);
-  if (!tags.some(value => value.toLowerCase() === tag.toLowerCase())) {
-    tags.push(tag);
-    input.value = tags.join(", ") + ", ";
+document.getElementById("tf-tags-entry").addEventListener("input", event => {
+  const parts = event.target.value.split(",");
+  if (parts.length > 1) {
+    event.target.value = parts.pop();
+    setTaskTags([...taskTags(), ...parts]);
+  } else {
     renderTaskTagSuggestions();
   }
-  input.focus();
+});
+document.getElementById("tf-tags-entry").addEventListener("keydown", event => {
+  const entry = event.target;
+  if (event.key === "Enter" && entry.value.trim()) {
+    if (!event.ctrlKey && !event.metaKey) event.preventDefault();
+    setTaskTags([...taskTags(), entry.value]);
+    entry.value = "";
+    renderTaskTagSuggestions();
+  } else if (event.key === "Backspace" && !entry.value && taskTags().length) {
+    setTaskTags(taskTags().slice(0, -1));
+  }
+});
+document.getElementById("tf-tags-entry").addEventListener("blur", event => {
+  if (!event.target.value.trim()) return;
+  setTaskTags([...taskTags(), event.target.value]);
+  event.target.value = "";
+  renderTaskTagSuggestions();
+});
+document.getElementById("tag-editor").addEventListener("click", event => {
+  const remove = event.target.closest("[data-remove-tag]");
+  if (remove) setTaskTags(taskTags().filter(tag => tag !== remove.dataset.removeTag));
+  document.getElementById("tf-tags-entry").focus();
+});
+document.getElementById("tag-suggestions").addEventListener("mousedown", event => event.preventDefault());
+document.getElementById("tag-suggestions").addEventListener("click", event => {
+  const button = event.target.closest(".tag-suggestion");
+  if (!button) return;
+  const entry = document.getElementById("tf-tags-entry");
+  entry.value = "";
+  setTaskTags([...taskTags(), button.dataset.tag]);
+  entry.focus();
 });
 
 async function saveTask() {
@@ -4409,11 +4867,14 @@ function closeNewProjectModal() {
 async function createProject() {
   const name = document.getElementById("np-name").value.trim();
   if (!name) { alert("Nome do projeto é obrigatório."); return; }
+  const id = name.split(/[\/\\]/).map(part => part.trim()).filter(Boolean).join("-");
+  if (!id || id === "." || id === "..") { alert("Nome do projeto inválido."); return; }
+  if (state.projects.some(p => p.name === id)) { alert(`Já existe um projeto com o identificador "${id}".`); return; }
   try {
-    await api(`/projects/${encodeURIComponent(name)}`, { method: "PUT", body: { settings: {} } });
+    await api(`/projects/${encodeURIComponent(id)}`, { method: "PUT", body: { settings: {}, displayName: name } });
     closeNewProjectModal();
     await loadProjects();
-    selectProject(name);
+    selectProject(id);
   } catch (e) {
     alert("Erro: " + e.message);
   }
@@ -4455,9 +4916,51 @@ document.getElementById("btn-add-task").onclick = () => openTaskModal();
 document.getElementById("tf-desc").addEventListener("focus", showDescriptionEditor);
 document.getElementById("tf-desc").addEventListener("input", syncDescriptionPreview);
 document.getElementById("tf-desc").addEventListener("blur", showDescriptionPreview);
+document.getElementById("tf-desc").addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    event.stopPropagation();
+    showDescriptionPreview();
+    document.getElementById("tf-desc-preview").focus();
+    return;
+  }
+
+  if (event.key !== "Tab" || event.ctrlKey || event.altKey || event.metaKey) return;
+  event.preventDefault();
+  const textarea = event.target;
+  const { selectionStart: start, selectionEnd: end, value } = textarea;
+  if (!event.shiftKey && !value.slice(start, end).includes("\n")) {
+    document.execCommand("insertText", false, "\t");
+    return;
+  }
+
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const lines = value.slice(lineStart, end).split("\n");
+  const updated = lines.map(line => event.shiftKey ? line.replace(/^(?:\t| {1,4})/, "") : "\t" + line).join("\n");
+  if (updated === value.slice(lineStart, end)) return;
+  textarea.setSelectionRange(lineStart, end);
+  document.execCommand("insertText", false, updated);
+  textarea.setSelectionRange(lineStart, lineStart + updated.length);
+});
 document.getElementById("tf-desc-preview").addEventListener("click", focusDescriptionEditor);
-document.getElementById("tf-desc-preview").addEventListener("focus", focusDescriptionEditor);
+document.getElementById("tf-desc-preview").addEventListener("keydown", event => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  focusDescriptionEditor();
+});
 document.getElementById("task-modal").addEventListener("paste", handleTaskPaste);
+document.getElementById("task-modal").addEventListener("keydown", event => {
+  if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)) return;
+  event.preventDefault();
+  if (event.target.id === "comment-content") saveTaskComment();
+  else saveTask();
+});
+document.getElementById("user-form").addEventListener("submit", event => {
+  event.preventDefault();
+  saveUser();
+});
+document.getElementById("um-pin").addEventListener("input", event => {
+  event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
+});
 const savedView = normalizeViewMode(localStorage.getItem("mc-view"));
 state.viewMode = savedView;
 localStorage.setItem("mc-view", savedView);
@@ -4472,6 +4975,7 @@ document.addEventListener("keydown", (e) => {
     closeTaskModal();
     closeSettingsModal();
     closeNewProjectModal();
+    closeUserModal();
     closeTaskContextMenu();
   }
 });
