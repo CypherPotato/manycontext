@@ -2,7 +2,12 @@
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#fafafa">
+<meta name="apple-mobile-web-app-title" content="ManyContext">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <title>manycontext</title>
 <style>
 :root {
@@ -31,6 +36,10 @@ button, input { font: inherit; }
 .login-button { height: 32px; padding: 0 14px; border: 0; border-radius: var(--radius-sm); background: var(--btn-primary-bg); color: var(--btn-primary-fg); font-weight: 700; cursor: pointer; transition: filter .15s; }
 .login-button:hover:not(:disabled) { filter: brightness(1.1); }
 .login-button:disabled { opacity: .55; cursor: wait; }
+@media (max-width: 700px) {
+  .text-input { height: 44px; font-size: 16px; }
+  .login-button { height: 44px; padding: 0 20px; }
+}
 </style>
 </head>
 <body>
@@ -57,6 +66,7 @@ button, input { font: inherit; }
   </form>
 </main>
 <script>
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 const form = document.getElementById("login-form");
 const input = document.getElementById("pin");
 const confirmInput = document.getElementById("pin-confirm");

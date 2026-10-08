@@ -2,7 +2,12 @@
 <html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#fafafa">
+<meta name="apple-mobile-web-app-title" content="ManyContext">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <title>manycontext</title>
 <style>
 :root {
@@ -21,6 +26,7 @@
   --overdue: #dc2626; --this-week: #d97706; --this-month: #4b5563; --future: #9ca3af;
   --chart-created: #2563eb; --chart-completed: #16875b; --chart-comments: #c56b12;
   --btn-primary-bg: #1f2328; --btn-primary-fg: #fff;
+  --tab-accent: #0969da;
   --modal-overlay: rgba(15,23,42,.35);
   --sidebar-w: 240px;
   --topbar-h: 48px;
@@ -43,6 +49,7 @@
   --overdue: #fca5a5; --this-week: #fcd34d; --this-month: #b8b8b8; --future: #6e6e6e;
   --chart-created: #7da6ff; --chart-completed: #6fd1a2; --chart-comments: #f2ae63;
   --btn-primary-bg: #f3f3f3; --btn-primary-fg: #131313;
+  --tab-accent: #4493f8;
   --modal-overlay: rgba(0,0,0,.6);
   --tag-bg-s: 30%; --tag-bg-l: 18%;
   --tag-fg-s: 55%; --tag-fg-l: 78%;
@@ -59,7 +66,7 @@ textarea { resize: vertical; min-height: 80px; }
 select { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--fg-muted) 50%), linear-gradient(135deg, var(--fg-muted) 50%, transparent 50%); background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 26px; }
 
 /* Layout */
-.app { display: flex; height: 100vh; }
+.app { display: flex; height: 100vh; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 .sidebar { width: var(--sidebar-w); min-width: var(--sidebar-w); background: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .sidebar-header { height: var(--topbar-h); padding: 0 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .sidebar-header h1 { font-size: 13px; font-weight: 600; letter-spacing: .2px; color: var(--fg); text-transform: lowercase; }
@@ -119,6 +126,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .project-tab:last-child { border-right: none; }
 .project-tab:hover { background: var(--bg-hover); color: var(--fg); }
 .project-tab.active { background: var(--fg); color: var(--bg-card); }
+.toolbar-back, .mobile-tabbar { display: none; }
 
 /* Home */
 .home-page { flex: 1; overflow-y: auto; padding: 36px 32px 64px; }
@@ -358,6 +366,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .doc-icon-btn { width: 24px; height: 24px; border-radius: var(--radius-sm); color: var(--fg-muted); display: inline-flex; align-items: center; justify-content: center; transition: background .12s, color .12s; flex-shrink: 0; }
 .doc-icon-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--fg); }
 .doc-icon-btn:disabled { opacity: .45; cursor: default; }
+.doc-icon-btn.doc-mobile-only { display: none; }
 .doc-search { padding: 8px; border-bottom: 1px solid var(--border); }
 .doc-search input { width: 100%; height: 28px; font-size: 12px; padding-left: 9px; }
 .doc-tree { flex: 1; overflow: auto; padding: 6px 4px 12px; display: flex; flex-direction: column; }
@@ -418,6 +427,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 #settings-modal .modal { width: min(640px, calc(100vw - 48px)); max-width: none; }
 #ai-result-modal .modal { width: min(760px, calc(100vw - 48px)); max-width: none; }
 #ai-result-modal .modal-body { padding: 24px 28px; }
+#new-project-modal .modal { max-width: 400px; }
 .modal-overlay.open .modal { transform: translateY(0); }
 .modal-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .modal-header h3 { font-size: 13px; font-weight: 600; color: var(--fg); display: flex; align-items: baseline; gap: 6px; }
@@ -719,32 +729,106 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
   .admin-breakdowns { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
-  body { height: auto; min-height: 100vh; overflow: auto; }
-  .app { min-height: 100vh; height: auto; flex-direction: column; }
-  .sidebar { width: 100%; min-width: 0; max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
-  .sidebar-header { height: 44px; }
-  .sidebar-nav { padding: 6px; }
-  .sidebar-section-header { min-height: 32px; padding-top: 7px; }
-  .project-list { flex: none; display: flex; gap: 4px; overflow-x: auto; padding: 4px 6px 8px; }
-  .project-list-empty { padding: 7px 10px; }
-  .project-item { min-width: 180px; }
-  .project-item + .project-item { margin-top: 0; }
-  .main { min-height: 620px; overflow: visible; }
-  .toolbar { min-height: var(--topbar-h); height: auto; padding: 8px 12px; flex-wrap: nowrap; overflow-x: auto; }
-  .toolbar h2 { min-width: max-content; }
-  .home-page { overflow: visible; padding: 18px 12px 40px; }
-  .home-hero { align-items: flex-start; flex-direction: column; gap: 20px; padding: 22px; }
-  .home-ai-summary { padding: 20px; }
+  :root { --tabbar-space: calc(88px + env(safe-area-inset-bottom)); }
+  body, .app { height: 100vh; height: 100dvh; }
+  body { -webkit-tap-highlight-color: transparent; }
+  button, summary, .task-row, .project-item, .doc-node-row { touch-action: manipulation; }
+  input, select, textarea { font-size: 16px; }
+  .app { flex-direction: column; }
+
+  .mobile-tabbar { display: flex; position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 90; height: 64px; padding: 6px; gap: 2px; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--bg-card) 80%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6); box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .mobile-tabbar button { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 999px; color: var(--fg-muted); font-size: 11px; font-weight: 600; transition: background .15s, color .15s; }
+  .mobile-tabbar button[hidden] { display: none; }
+  .mobile-tabbar button svg { width: 22px; height: 22px; }
+  .mobile-tabbar button.active { color: var(--tab-accent); background: var(--bg-hover); }
+
+  body:not([data-view="projects"]) .sidebar { display: none; }
+  body[data-view="projects"] .main { display: none; }
+  .sidebar { flex: 1; width: 100%; min-width: 0; border-right: none; background: var(--bg); }
+  .sidebar-header { height: auto; padding: calc(14px + env(safe-area-inset-top)) 16px 6px; border-bottom: none; }
+  .sidebar-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .sidebar-actions { gap: 8px; }
+  .sidebar-actions button, .sidebar-section-header button { width: 40px; height: 40px; border-radius: 999px; background: var(--bg-card); border: 1px solid var(--border); color: var(--fg); }
+  .sidebar-nav { display: none; }
+  .sidebar-section-header { min-height: 0; padding: 18px 16px 10px; color: var(--fg); font-size: 20px; font-weight: 700; letter-spacing: -.01em; text-transform: none; }
+  .project-list { padding: 0 16px var(--tabbar-space); }
+  .project-item { min-height: 56px; padding: 10px 8px 10px 16px; gap: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; }
+  .project-item + .project-item { margin-top: 8px; }
+  .project-item.active { box-shadow: none; }
+  .project-item .project-name { font-size: 16px; }
+  .project-counts { font-size: 13px; }
+  .project-item .settings-btn { opacity: 1; width: 40px; height: 40px; border-radius: 999px; }
+  .project-group { margin-bottom: 8px; }
+  .project-group > summary { padding: 12px 4px 8px; font-size: 14px; }
+  .project-group .project-item { margin-left: 0; }
+
+  .main { flex: 1; min-height: 0; }
+  body:not([data-view="project"]) .toolbar { display: none; }
+  .toolbar { height: auto; padding: calc(8px + env(safe-area-inset-top)) 12px 10px; gap: 8px; flex-wrap: wrap; }
+  .toolbar-back { display: inline-flex; flex: none; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 999px; background: var(--bg-hover); color: var(--fg); }
+  .toolbar h2 { flex: 1; min-width: 0; margin-right: 0; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toolbar-spacer { display: none; }
+  .project-tabs { order: 5; flex: 1 1 100%; border-radius: 10px; }
+  .project-tab { flex: 1; height: 36px; font-size: 14px; }
+  .view-toggles { height: 40px; border-radius: 999px; }
+  .view-toggle { width: 40px; height: 38px; }
+  .toolbar-icon-btn { width: 40px; height: 40px; border-radius: 999px; }
+  #btn-refresh { display: none !important; }
+  .add-task-btn { height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; }
+
+  .subtoolbar { padding: 10px 12px; gap: 8px; }
+  .search-box { flex: 1 1 100%; min-width: 0; max-width: none; }
+  .search-box input { height: 40px; padding-left: 34px; border-radius: 10px; }
+  .search-box svg.search-icon { left: 12px; width: 15px; height: 15px; }
+  .search-clear { right: 6px; width: 30px; height: 30px; }
+  .subtoolbar-spacer { display: none; }
+  .list-filters, .kanban-filters { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .group-select, .list-filter, .kanban-filter { flex: none; height: 36px; padding: 4px 28px 4px 12px; border-radius: 999px; font-size: 16px; }
+
+  .task-list-container { padding: 0 0 var(--tabbar-space); }
+  .task-list-container > .task-list, .task-list-container > .group-section:first-child { padding-top: 0; }
+  .group-section { margin-bottom: 0; }
+  .group-header { position: sticky; top: 0; z-index: 1; padding: 12px 16px 8px; background: var(--bg); font-size: 13px; }
+  .task-row { align-items: flex-start; gap: 12px; padding: 14px 16px; }
+  .task-type-icon { width: 18px; height: 18px; margin-top: 2px; }
+  .task-row > .user-avatar { display: none; }
+  .task-row-main { gap: 4px; }
+  .task-row .task-title { font-size: 16px; font-weight: 600; line-height: 1.35; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .task-row .task-id { font-size: 13px; }
+  .task-row .task-desc-line { font-size: 13px; flex-wrap: wrap; row-gap: 2px; }
+  .task-row .task-desc { flex: 1 1 100%; order: -1; }
+  .task-row .task-group + .task-desc::before { content: none; }
+  .task-row-meta { flex-direction: column; align-items: flex-end; gap: 6px; }
+  .badge-due { font-size: 12px; }
+  .kanban-board { padding: 10px 12px; scroll-snap-type: x mandatory; }
+  .kanban-column { width: 85vw; min-width: 85vw; scroll-snap-align: center; }
+  .kanban-card { padding: 12px; }
+  .kanban-card-title { font-size: 15px; }
+
+  .home-page { padding: calc(20px + env(safe-area-inset-top)) 16px var(--tabbar-space); }
+  .home-hero { align-items: flex-start; flex-direction: column; gap: 12px; padding: 4px 0 8px; background: none; border: none; box-shadow: none; }
+  .home-hero h1 { font-size: 28px; }
+  .home-intro { font-size: 15px; }
+  .home-ai-summary { margin-top: 16px; padding: 18px; border-radius: 14px; }
   .home-ai-header { align-items: flex-start; flex-direction: column; gap: 8px; }
   .home-ai-content { font-size: 15px; }
-  #ai-result-modal .modal { width: calc(100vw - 16px); max-height: calc(100vh - 16px); }
-  #ai-result-modal .modal-body { padding: 20px; }
-  .ai-result { font-size: 15px; }
-  .home-stats { margin-top: 16px; }
-  .home-stat { padding: 15px; }
+  .home-stats { margin-top: 16px; border-radius: 14px; }
+  .home-stat { padding: 16px; }
   .home-grid { gap: 16px; margin-top: 16px; }
-  .home-panel { padding: 18px; }
-  .admin-page { overflow: visible; padding: 20px 12px 40px; }
+  .home-panel { padding: 16px; border-radius: 14px; }
+  .home-panel-header { flex-wrap: wrap; }
+  .home-panel h2 { font-size: 18px; }
+  .home-task { min-height: 60px; padding: 12px 4px; gap: 12px; }
+  .home-task .task-type-icon { width: 18px; height: 18px; }
+  .home-task-title { font-size: 15px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .home-task-meta { font-size: 13px; }
+  .home-activity-heading { min-height: 56px; padding: 12px; }
+  .home-activity-title { font-size: 14px; }
+  .home-activity-meta, .home-activity-time { font-size: 12px; }
+  .home-activity-item { font-size: 13px; }
+  .home-activity-select { height: 36px; }
+
+  .admin-page { padding: calc(20px + env(safe-area-inset-top)) 12px var(--tabbar-space); }
   .admin-header { align-items: flex-start; flex-direction: column; gap: 8px; }
   .admin-filters, .admin-stats { grid-template-columns: 1fr; }
   .admin-stat { border-right: none; border-bottom: 1px solid var(--border); }
@@ -752,25 +836,88 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
   .admin-panel { padding: 18px 14px; }
   .admin-panel-header { align-items: flex-start; flex-direction: column; }
   .admin-chart { min-width: 680px; }
+  .admin-chart-scroll { overflow-x: auto; padding-bottom: 6px; }
   .manage-key-head { align-items: flex-start; flex-direction: column; }
   .manage-key-footer { flex-wrap: wrap; }
-  .admin-chart-scroll { overflow-x: auto; padding-bottom: 6px; }
-  #task-modal .modal { width: calc(100vw - 16px); height: calc(100vh - 16px); }
-  #task-modal .modal-body { display: block; overflow-y: auto; }
-  .task-title-input { padding: 14px 16px 8px; }
-  .task-main .modal-tabs { padding: 0 16px; }
+
+  .documents-workspace { grid-template-columns: minmax(0, 1fr); }
+  .doc-splitter { display: none; }
+  .documents-workspace.doc-open .doc-tree-panel, .documents-workspace:not(.doc-open) .doc-editor-panel { display: none; }
+  .doc-tree-panel { border-right: none; background: var(--bg); }
+  .doc-tree-header { height: 56px; padding: 0 12px 0 16px; gap: 4px; }
+  .doc-tree-title { font-size: 13px; }
+  .doc-icon-btn { width: 40px; height: 40px; border-radius: 999px; }
+  .doc-icon-btn.doc-mobile-only { display: inline-flex; }
+  .doc-search { padding: 8px 12px; }
+  .doc-search input { height: 40px; font-size: 16px; border-radius: 10px; }
+  .doc-tree { padding: 4px 8px var(--tabbar-space); }
+  .doc-node-row { height: 48px; gap: 10px; padding: 0 12px 0 calc(12px + var(--depth, 0) * 18px); border-radius: 10px; }
+  .doc-node-row.active { box-shadow: none; }
+  .doc-node-toggle { width: 16px; height: 16px; }
+  .doc-node-icon { width: 18px; height: 18px; }
+  .doc-node-icon svg { width: 18px; height: 18px; }
+  .doc-node-name { font-size: 15px; }
+  .doc-editor-toolbar { height: 56px; padding: 0 8px 0 16px; gap: 2px; }
+  .doc-title-input { min-width: 0; font-size: 16px; }
+  .doc-save-state { margin-right: 4px; }
+  .doc-editor-body { grid-template-columns: minmax(0, 1fr); }
+  .doc-editor-body:not(.no-preview):not(.mobile-editing) .doc-editor-textarea, .doc-editor-body.mobile-editing .doc-preview-pane { display: none; }
+  .doc-editor-shell:has(.doc-editor-body.no-preview) #btn-toggle-doc-edit { display: none; }
+  #btn-toggle-doc-edit[aria-pressed="true"] { background: var(--bg-hover); color: var(--fg); }
+  .doc-preview-pane { padding: 18px 16px var(--tabbar-space); border-right: none; }
+  .doc-preview-pane .markdown-preview { font-size: 16px; line-height: 1.65; }
+  .doc-editor-textarea { padding: 16px 16px var(--tabbar-space); font-size: 14px; }
+
+  .modal-overlay { align-items: flex-end; }
+  .modal, #settings-modal .modal, #ai-result-modal .modal, #new-project-modal .modal { width: 100%; max-width: none; max-height: calc(100dvh - 24px - env(safe-area-inset-top)); border: none; border-radius: 18px 18px 0 0; }
+  .modal-header { min-height: 56px; padding: 8px 8px 8px 16px; }
+  .modal-header h3 { font-size: 16px; min-width: 0; }
+  .modal-close { width: 40px; height: 40px; border-radius: 999px; font-size: 22px; }
+  .modal-footer { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); gap: 8px; }
+  .modal-footer .btn-primary, .modal-footer .btn-secondary, .modal-footer .btn-danger { height: 44px; padding: 0 16px; border-radius: 10px; font-size: 15px; }
+  .modal-tabs { overflow-x: auto; scrollbar-width: none; }
+  .modal-tab { flex: none; padding: 12px 14px; font-size: 14px; }
+  .btn-primary, .btn-secondary { min-height: 36px; }
+  #ai-result-modal .modal-body { padding: 20px 16px; }
+  .ai-result { font-size: 15px; }
+
+  #task-modal .modal { width: 100%; height: 100dvh; max-height: none; border-radius: 0; }
+  #task-modal .modal-header { padding-top: calc(8px + env(safe-area-inset-top)); }
+  #task-modal .modal-body { display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .task-title-input { padding: 16px 16px 8px; font-size: 22px; line-height: 1.25; }
+  .task-main .modal-tabs { position: sticky; top: 0; z-index: 2; padding: 0 8px; background: var(--bg-card); }
   .task-main-scroll { overflow: visible; padding: 16px; }
-  .task-side { border-left: none; border-top: 1px solid var(--border); }
-  .description-hint { visibility: hidden; }
-  #settings-modal .modal { width: calc(100vw - 16px); }
-  .modal-tabs { overflow-x: auto; }
+  .description-hint { display: none; }
+  .description-header { justify-content: space-between; }
+  #tab-content .description-editor, #tab-content .description-editor textarea, #tab-content .markdown-preview { min-height: 200px; }
+  .markdown-preview { font-size: 16px; line-height: 1.6; }
+  .ai-actions-trigger { min-height: 36px; }
+  .task-side { border-left: none; border-top: 1px solid var(--border); padding: 18px 16px 24px; }
+  .task-props { grid-template-columns: 96px minmax(0, 1fr); gap: 12px; }
+  .task-props > label, .task-props > span { padding-top: 10px; font-size: 14px; }
+  .task-props input, .task-props select { height: 42px; }
+  .task-info { font-size: 13px; }
+  #danger-zone button { height: 44px; font-size: 14px; }
+  .subtask-row { padding: 12px 0; }
+  .subtask-copy strong { font-size: 15px; }
+  .subtask-grip, .subtask-actions > summary { width: 36px; height: 36px; }
+  .subtask-action-menu button { padding: 12px; font-size: 15px; }
+  .conversation-action { padding: 8px 10px; font-size: 13px; }
+  .copy-menu button, .ai-actions-menu button { padding: 12px; font-size: 15px; }
+
+  .task-context-menu.open, .doc-context-menu.open { left: 8px !important; right: 8px; top: auto !important; bottom: calc(8px + env(safe-area-inset-bottom)); max-height: 70dvh; overflow-y: auto; padding: 6px; border-radius: 16px; box-shadow: 0 -8px 40px rgba(0,0,0,.25); }
+  .task-context-menu button, .doc-context-menu button { min-height: 46px; padding: 10px 14px; border-radius: 10px; font-size: 16px; }
+  .task-context-submenu { position: static; max-height: none; margin: 0 0 4px 12px; padding: 0; border: none; border-left: 2px solid var(--border); border-radius: 0; box-shadow: none; }
+
+  .toast-stack { left: 12px; right: 12px; bottom: calc(88px + env(safe-area-inset-bottom)); align-items: center; }
+  .toast { font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 </style>
 </head>
-<body>
+<body data-view="home">
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -810,6 +957,9 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 
   <main class="main">
     <div class="toolbar" id="toolbar">
+      <button class="toolbar-back" aria-label="Voltar" onclick="history.state?.layer ? history.back() : leaveProject()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
       <h2 id="toolbar-title">Home</h2>
       <div class="project-tabs" id="project-tabs" style="display:none">
         <button class="project-tab active" data-section="tasks" onclick="setProjectSection('tasks')">Tarefas</button>
@@ -918,6 +1068,12 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
           <div class="doc-editor-toolbar">
             <input class="doc-title-input" id="doc-title-input" spellcheck="false">
             <span class="doc-save-state" id="doc-save-state">Salvo</span>
+            <button class="doc-icon-btn doc-mobile-only" id="btn-toggle-doc-edit" title="Editar" aria-label="Editar documento" aria-pressed="false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            </button>
+            <button class="doc-icon-btn doc-mobile-only" id="btn-doc-more" title="Mais ações" aria-label="Mais ações">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </button>
             <button class="doc-icon-btn" id="btn-copy-doc-public-link" title="Copiar link público" aria-label="Copiar link público">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </button>
@@ -931,6 +1087,25 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
     </div>
   </main>
 </div>
+
+<nav class="mobile-tabbar" aria-label="Navegação principal">
+  <button data-view="home" onclick="showHome()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+    <span>Home</span>
+  </button>
+  <button data-view="projects" onclick="showProjects()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    <span>Projetos</span>
+  </button>
+  <button data-view="admin" data-admin onclick="showAdminDashboard()" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19V2"/><path d="M2 19h22"/></svg>
+    <span>Dashboard</span>
+  </button>
+  <button data-view="manage" data-admin onclick="showAdminManagement()" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
+    <span>Admin</span>
+  </button>
+</nav>
 
 <div class="doc-context-menu" id="doc-context-menu">
   <button data-action="rename">Renomear</button>
@@ -1137,7 +1312,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 
 <!-- New Project Modal -->
 <div class="modal-overlay" id="new-project-modal">
-  <div class="modal" style="max-width:400px">
+  <div class="modal">
     <div class="modal-header">
       <h3>Novo Projeto</h3>
       <button class="modal-close" onclick="closeNewProjectModal()">&times;</button>
@@ -1175,11 +1350,13 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 
 <script>
 const SEARCH_DEBOUNCE_MS = 450;
+const mobileQuery = matchMedia("(max-width: 700px)");
 
 const state = {
   projects: [],
   currentProject: null,
   currentView: "home",
+  projectReturnView: "projects",
   home: null,
   admin: null,
   analyticsFilters: { days: 30, project: "", user: "" },
@@ -1255,6 +1432,7 @@ function toggleTheme() {
 function updateThemeIcon(theme) {
   document.getElementById("icon-sun").style.display = theme === "dark" ? "none" : "block";
   document.getElementById("icon-moon").style.display = theme === "dark" ? "block" : "none";
+  document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#131313" : "#fafafa";
 }
 
 initTheme();
@@ -1291,6 +1469,7 @@ async function loadAuthStatus() {
   state.authUsers = (data.users || []).map(user => user.name).filter(Boolean);
   document.getElementById("btn-admin").hidden = !state.authUser?.isAdmin;
   document.getElementById("btn-manage").hidden = !state.authUser?.isAdmin;
+  document.querySelectorAll(".mobile-tabbar [data-admin]").forEach(button => button.hidden = !state.authUser?.isAdmin);
 }
 
 // Projects
@@ -1844,7 +2023,42 @@ function projectCountsHtml(project) {
   return `<span class="project-counts" title="${pending} pendentes, ${done} concluídas"><span class="project-count pending">${pending}</span><span class="project-count done">${done}</span></span>`;
 }
 
+function showProjects() {
+  state.currentView = "projects";
+  state.currentProject = null;
+  renderProjects();
+  updateProjectSectionUi();
+}
+
+function leaveProject() {
+  if (state.projectReturnView === "home") showHome();
+  else showProjects();
+}
+
+const LAYER_DEPTH = { project: 1, doc: 2, task: 3 };
+
+function pushLayer(layer) {
+  if (mobileQuery.matches && history.state?.layer !== layer) history.pushState({ layer }, "");
+}
+
+function popLayer(layer) {
+  if (history.state?.layer === layer) history.back();
+}
+
+window.addEventListener("popstate", () => {
+  const depth = LAYER_DEPTH[history.state?.layer] || 0;
+  if (depth < LAYER_DEPTH.task && document.getElementById("task-modal").classList.contains("open")) closeTaskModal();
+  if (depth < LAYER_DEPTH.doc && state.selectedDocumentIds.size > 0) clearSelectedFolder();
+  if (depth < LAYER_DEPTH.project && state.currentView === "project") leaveProject();
+});
+
+mobileQuery.addEventListener("change", event => {
+  if (!event.matches && state.currentView === "projects") showHome();
+});
+
 async function selectProject(name) {
+  if (state.currentView !== "project") state.projectReturnView = state.currentView;
+  pushLayer("project");
   state.currentView = "project";
   state.currentProject = name;
   state.selectedDocumentId = null;
@@ -1880,6 +2094,8 @@ async function setProjectSection(section) {
 
 function updateProjectSectionUi() {
   const hasProject = state.currentView === "project" && Boolean(state.currentProject);
+  document.body.dataset.view = state.currentView;
+  document.querySelectorAll(".mobile-tabbar button").forEach(button => button.classList.toggle("active", button.dataset.view === (state.currentView === "project" ? "projects" : state.currentView)));
   document.getElementById("btn-home").classList.toggle("active", state.currentView === "home");
   document.getElementById("btn-admin").classList.toggle("active", state.currentView === "admin");
   document.getElementById("home-page").classList.toggle("hidden", state.currentView !== "home");
@@ -2651,9 +2867,9 @@ function bindDocumentRows() {
         return;
       }
       const id = Number(row.dataset.id);
-      if (event.target.closest(".doc-node-toggle") && documentById(id)?.type === "folder") {
+      if (documentById(id)?.type === "folder" && (event.target.closest(".doc-node-toggle") || mobileQuery.matches)) {
         toggleDocumentFolder(id);
-        return;
+        if (!mobileQuery.matches) return;
       }
       selectDocument(id, event);
     };
@@ -2891,12 +3107,22 @@ function renderDocumentEditor() {
   const doc = documentById(state.selectedDocumentId);
   const empty = document.getElementById("doc-editor-empty");
   const shell = document.getElementById("doc-editor-shell");
-  if (state.selectedDocumentIds.size !== 1 || !doc || doc.type !== "file") {
+  const body = document.getElementById("doc-editor-body");
+  const isOpen = state.selectedDocumentIds.size === 1 && doc?.type === "file";
+  document.getElementById("documents-workspace").classList.toggle("doc-open", isOpen);
+  if (!isOpen) {
     empty.style.display = "";
     shell.style.display = "none";
+    popLayer("doc");
     return;
   }
 
+  pushLayer("doc");
+  if (body.dataset.docId !== String(doc.id)) {
+    body.dataset.docId = doc.id;
+    body.classList.remove("mobile-editing");
+    document.getElementById("btn-toggle-doc-edit").setAttribute("aria-pressed", "false");
+  }
   empty.style.display = "none";
   shell.style.display = "";
   document.getElementById("doc-title-input").value = doc.name;
@@ -3335,6 +3561,15 @@ document.getElementById("doc-editor").addEventListener("input", () => {
 document.getElementById("doc-editor").addEventListener("scroll", () => syncDocumentScroll("editor"));
 document.getElementById("doc-preview-pane").addEventListener("scroll", () => syncDocumentScroll("preview"));
 document.getElementById("btn-copy-doc-public-link").onclick = copyCurrentDocumentPublicLink;
+document.getElementById("btn-toggle-doc-edit").onclick = (event) => {
+  const editing = document.getElementById("doc-editor-body").classList.toggle("mobile-editing");
+  event.currentTarget.setAttribute("aria-pressed", String(editing));
+  if (editing) document.getElementById("doc-editor").focus();
+};
+document.getElementById("btn-doc-more").onclick = (event) => {
+  event.stopPropagation();
+  openDocumentContextMenu(event, state.selectedDocumentId);
+};
 document.getElementById("doc-context-menu").addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button || button.disabled) return;
@@ -3564,7 +3799,8 @@ function openTaskModal(taskId) {
   document.querySelector('#task-tabs [data-tab="conversation"]').style.display = isEdit ? "" : "none";
   switchTaskTab("content");
   document.getElementById("task-modal").classList.add("open");
-  setTimeout(() => document.getElementById("tf-title").focus(), 100);
+  pushLayer("task");
+  if (!isEdit || !mobileQuery.matches) setTimeout(() => document.getElementById("tf-title").focus(), 100);
 }
 
 function toggleTaskCopyMenu(event) {
@@ -4325,6 +4561,7 @@ function closeTaskModal() {
   state.pendingTaskAttachments = [];
   document.getElementById("tf-attachments").value = "";
   document.getElementById("task-modal").classList.remove("open");
+  popLayer("task");
 }
 
 function populateFormSelects() {
@@ -4983,6 +5220,8 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest("#task-copy-wrap")) closeTaskCopyMenu();
   if (!e.target.closest(".ai-actions-wrap")) closeTaskAiMenu();
 });
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 
 async function initApp() {
   await loadAuthStatus();

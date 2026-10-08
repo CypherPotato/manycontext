@@ -12,6 +12,7 @@ Gestão de projetos, tarefas e documentos em PHP e SQLite, com interface web e s
 - Documentos e pastas com busca e compartilhamento por link público.
 - Dashboard e recursos opcionais de IA via AIVAX.
 - Página de administração: usuários, PINs, chaves MCP (inspecionar, copiar e rotacionar) e chave da AIVAX.
+- Interface adaptada ao celular (barra de navegação inferior, telas de tarefa e documento em tela cheia, botão Voltar do sistema) e instalável como PWA. A instalação exige HTTPS; offline, o app mostra apenas uma tela de aviso.
 
 ## Requisitos
 
