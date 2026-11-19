@@ -71,6 +71,10 @@ Content-Type: application/json
 {"displayName":"Equipe/Produto"}
 ```
 
+Pelo MCP, `manycontext_create_project`, `manycontext_update_project` e `manycontext_delete_project` criam, renomeiam/configuram e excluem projetos. Na atualização, chaves de `settings` omitidas são preservadas, e um status que ainda tem tarefas não pode ser removido. A exclusão é permanente e restrita a administradores.
+
+O `status` de uma tarefa precisa existir nos status do projeto; a API e o MCP recusam valores desconhecidos ao criar ou mover tarefas.
+
 Criar ou atualizar uma tarefa aceita `subTasks` na API e nas ferramentas MCP de tarefas:
 
 ```json

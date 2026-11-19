@@ -110,6 +110,19 @@ final class McpController
             $this->tool('manycontext_get_project', 'Get one project with settings and tasks.', [
                 'project' => ['type' => 'string'],
             ], ['project']),
+            $this->tool('manycontext_create_project', 'Create a project. "project" is the permanent ID used in URLs and tools; displayName is the editable label (use "Group/Project" to group it). Omitted settings use defaults. The caller becomes a member.', [
+                'project' => ['type' => 'string'],
+                'displayName' => ['type' => 'string'],
+                'settings' => $this->settingsSchema(),
+            ], ['project']),
+            $this->tool('manycontext_update_project', 'Update a project displayName and/or settings. Omitted settings keys keep their current values. A status that still has tasks cannot be removed; move those tasks first.', [
+                'project' => ['type' => 'string'],
+                'displayName' => ['type' => 'string'],
+                'settings' => $this->settingsSchema(),
+            ], ['project']),
+            $this->tool('manycontext_delete_project', 'Permanently delete a project with all its tasks, attachments and documents. Admin only. To keep the data, ask an admin to archive it instead.', [
+                'project' => ['type' => 'string'],
+            ], ['project']),
             $this->tool('manycontext_list_tasks', 'List tasks from one project, optionally filtered. Free-text search uses semantic reranking. Archived tasks are only returned when archived is true.', [
                 'project' => ['type' => 'string'],
                 'search' => ['type' => 'string'],
@@ -222,7 +235,7 @@ final class McpController
             'manycontext_list_projects',
         ], true)) {
             $project = $this->requiredString($args, 'project');
-            $createsProject = $toolName === 'manycontext_create_task' && !$this->repository->projectExists($project);
+            $createsProject = in_array($toolName, ['manycontext_create_task', 'manycontext_create_project'], true) && !$this->repository->projectExists($project);
             if (!$createsProject) {
                 $this->repository->requireProjectAccess($project, $user['id'], $user['isAdmin']);
             }
@@ -230,6 +243,9 @@ final class McpController
         $data = match ($toolName) {
             'manycontext_list_projects' => $this->repository->projectSummaries($user['id'], $user['isAdmin']),
             'manycontext_get_project' => $this->repository->getProject($this->requiredString($args, 'project'), false, $this->actor($args)),
+            'manycontext_create_project' => $this->createProject($args),
+            'manycontext_update_project' => $this->updateProject($args),
+            'manycontext_delete_project' => $this->deleteProject($args),
             'manycontext_list_tasks' => $this->filteredTasks($args),
             'manycontext_get_task' => $this->completeTask($this->requiredString($args, 'project'), $this->requiredId($args, 'id'), $this->actor($args), $this->boolArg($args, 'markConversationRead')),
             'manycontext_create_task' => $this->createTask($args),
@@ -254,6 +270,75 @@ final class McpController
             'content' => [['type' => 'text', 'text' => json_encode($structuredContent, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]],
             'structuredContent' => $structuredContent,
         ];
+    }
+
+    private function createProject(array $args): array
+    {
+        $project = $this->requiredString($args, 'project');
+        if ($this->repository->projectExists($project)) {
+            throw new HttpError(409, sprintf('Project "%s" already exists.', $project));
+        }
+
+        return $this->repository->saveProjectSettings($project, $this->settingsArg($args), $this->user['id'], $this->optionalString($args, 'displayName'));
+    }
+
+    private function updateProject(array $args): array
+    {
+        $project = $this->requiredString($args, 'project');
+        $settings = $this->settingsArg($args);
+        $displayName = $this->optionalString($args, 'displayName');
+        if ($settings === null && $displayName === null) {
+            throw new HttpError(400, 'Provide displayName and/or settings.');
+        }
+
+        $current = $this->repository->getProject($project);
+        if ($settings !== null) {
+            $settings = array_merge($current['settings'], $settings);
+            if (!is_array($settings['statuses'])) {
+                throw new HttpError(400, 'settings.statuses must be a list of strings.');
+            }
+
+            $statuses = array_map(fn (mixed $status) => is_string($status) ? trim($status) : $status, $settings['statuses']);
+            $removed = array_diff($current['settings']['statuses'], $statuses);
+            $orphaned = array_values(array_intersect($removed, array_unique(array_column($current['tasks'], 'status'))));
+            if (count($orphaned) > 0) {
+                throw new HttpError(409, sprintf('Cannot remove statuses that still have tasks: %s. Move those tasks to another status first.', implode(', ', $orphaned)));
+            }
+        }
+
+        return $this->repository->saveProjectSettings($project, $settings, $this->user['id'], $displayName);
+    }
+
+    private function deleteProject(array $args): array
+    {
+        if (!$this->user['isAdmin']) {
+            throw new HttpError(403, 'Only admins can delete projects.');
+        }
+
+        return $this->repository->deleteProject($this->requiredString($args, 'project'));
+    }
+
+    private function settingsArg(array $args): ?array
+    {
+        if (!array_key_exists('settings', $args) || $args['settings'] === null) {
+            return null;
+        }
+        if (!is_array($args['settings']) || (count($args['settings']) > 0 && array_is_list($args['settings']))) {
+            throw new HttpError(400, 'Argument "settings" must be an object.');
+        }
+
+        return $args['settings'];
+    }
+
+    private function settingsSchema(): array
+    {
+        return ['type' => 'object', 'additionalProperties' => false, 'properties' => [
+            'statuses' => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string', 'minLength' => 1], 'description' => 'Ordered Kanban columns.'],
+            'priorities' => ['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string', 'minLength' => 1]],
+            'defaultStatus' => ['type' => 'string'],
+            'defaultPriority' => ['type' => 'string'],
+            'doneStatus' => ['type' => 'string'],
+        ]];
     }
 
     private function createTask(array $args): array

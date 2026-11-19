@@ -732,15 +732,15 @@ final class Repository
     {
         $name = $this->projectName($name);
         $row = $this->projectRow($name);
+        $displayName = $displayName === null ? ($row['display_name'] ?? $name) : trim($displayName);
+        if ($displayName === '' || mb_strlen($displayName) > 200) {
+            throw new HttpError(400, 'Display name must contain between 1 and 200 characters.');
+        }
         if (!$row) {
             $this->createProject($name, $creatorUserId);
         }
 
         $normalized = $this->normalizeSettings($settings ?? ($row ? $this->settingsFromRow($row) : self::DEFAULT_SETTINGS));
-        $displayName = $displayName === null ? ($row['display_name'] ?? $name) : trim($displayName);
-        if ($displayName === '' || mb_strlen($displayName) > 200) {
-            throw new HttpError(400, 'Display name must contain between 1 and 200 characters.');
-        }
         $stmt = $this->db->prepare('UPDATE projects SET settings = :settings, display_name = :display_name, updated_at = :updated_at WHERE name = :name');
         $stmt->execute([
             ':name' => $name,
@@ -802,7 +802,9 @@ final class Repository
                 'priority' => (string)($body['priority'] ?? $project['settings']['defaultPriority']),
                 'tags' => $this->stringList($body['tags'] ?? []),
                 'group' => $body['group'] ?? null,
-                'status' => (string)($body['status'] ?? $project['settings']['defaultStatus']),
+                'status' => array_key_exists('status', $body)
+                    ? $this->projectStatus($projectName, $project['settings'], $body['status'])
+                    : $project['settings']['defaultStatus'],
                 'workingAgent' => $body['workingAgent'] ?? null,
                 'assignees' => $this->taskAssignees($body['assignees'] ?? []),
                 'subTasks' => $this->subTasks($body['subTasks'] ?? []),
@@ -857,6 +859,9 @@ final class Repository
                     default => $body[$key],
                 };
             }
+        }
+        if ($task['status'] !== $before['status']) {
+            $task['status'] = $this->projectStatus($projectName, $this->settingsFromRow($this->projectRow($projectName)), $task['status']);
         }
         $task['updatedAt'] = $this->now();
         if (array_key_exists('archived', $body)) {
@@ -1729,6 +1734,20 @@ final class Repository
             : (in_array(self::DEFAULT_SETTINGS['doneStatus'], $statuses, true) ? self::DEFAULT_SETTINGS['doneStatus'] : $statuses[count($statuses) - 1]);
 
         return compact('statuses', 'priorities', 'defaultStatus', 'defaultPriority', 'doneStatus');
+    }
+
+    private function projectStatus(string $projectName, array $settings, mixed $status): string
+    {
+        if (!is_string($status) || !in_array($status, $settings['statuses'], true)) {
+            throw new HttpError(400, sprintf(
+                'Status %s does not exist in project "%s". Valid statuses: %s.',
+                is_string($status) ? '"' . $status . '"' : 'value',
+                $projectName,
+                implode(', ', $settings['statuses'])
+            ));
+        }
+
+        return $status;
     }
 
     private function normalizeOptionList(mixed $values, array $fallback): array

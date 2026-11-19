@@ -434,6 +434,9 @@ try {
     assert_same(200, $tools['status'], 'lists MCP tools');
     $toolNames = array_column($tools['json']['result']['tools'], 'name');
     foreach ([
+        'manycontext_create_project',
+        'manycontext_update_project',
+        'manycontext_delete_project',
         'manycontext_get_task',
         'manycontext_write_task_comment',
         'manycontext_list_documents',
@@ -599,6 +602,57 @@ try {
         'arguments' => ['project' => 'Alpha', 'id' => 2],
     ]);
     assert_true($mcpDeleted['json']['result']['structuredContent']['deleted'], 'deletes task through MCP');
+
+    $invalidStatusCreate = json_request('POST', $base . '/api/projects/Alpha/tasks', ['title' => 'Sem coluna', 'status' => 'inexistente']);
+    assert_same(400, $invalidStatusCreate['status'], 'rejects task creation in a missing status');
+    assert_same(400, json_request('PUT', $base . '/api/projects/Alpha/tasks/1', ['status' => 'inexistente'])['status'], 'rejects task update to a missing status');
+    $mcpInvalidStatus = mcp_request($base, $token, 'tools/call', [
+        'name' => 'manycontext_create_task',
+        'arguments' => ['project' => 'Alpha', 'title' => 'Sem coluna', 'status' => 'inexistente'],
+    ]);
+    assert_true(str_contains($mcpInvalidStatus['json']['error']['message'] ?? '', 'todo, doing, done'), 'rejects MCP task in a missing status and lists valid statuses');
+    $statusCheckTasks = json_request('GET', $base . '/api/projects/Alpha/tasks');
+    assert_true(!in_array('Sem coluna', array_column($statusCheckTasks['json'], 'title'), true), 'does not persist tasks with missing statuses');
+
+    $mcpProjectCreated = mcp_request($base, $outsiderToken, 'tools/call', [
+        'name' => 'manycontext_create_project',
+        'arguments' => ['project' => 'McpProject', 'displayName' => 'Equipe/MCP', 'settings' => ['statuses' => ['backlog', 'review', 'done'], 'defaultStatus' => 'backlog']],
+    ]);
+    assert_same('Equipe/MCP', $mcpProjectCreated['json']['result']['structuredContent']['displayName'] ?? null, 'creates project through MCP');
+    assert_same(['backlog', 'review', 'done'], $mcpProjectCreated['json']['result']['structuredContent']['settings']['statuses'], 'stores MCP project statuses');
+    $mcpDuplicateProject = mcp_request($base, $outsiderToken, 'tools/call', [
+        'name' => 'manycontext_create_project',
+        'arguments' => ['project' => 'McpProject'],
+    ]);
+    assert_true(str_contains($mcpDuplicateProject['json']['error']['message'] ?? '', 'already exists'), 'rejects duplicated MCP project');
+    $mcpProjectTask = mcp_request($base, $outsiderToken, 'tools/call', [
+        'name' => 'manycontext_create_task',
+        'arguments' => ['project' => 'McpProject', 'title' => 'Em revisão', 'status' => 'review'],
+    ]);
+    assert_same('review', $mcpProjectTask['json']['result']['structuredContent']['status'], 'creator can create tasks in MCP project');
+    $mcpProjectRenamed = mcp_request($base, $outsiderToken, 'tools/call', [
+        'name' => 'manycontext_update_project',
+        'arguments' => ['project' => 'McpProject', 'displayName' => 'Equipe/MCP 2', 'settings' => ['priorities' => ['p1', 'p2']]],
+    ]);
+    assert_same('Equipe/MCP 2', $mcpProjectRenamed['json']['result']['structuredContent']['displayName'], 'renames project through MCP');
+    assert_same(['backlog', 'review', 'done'], $mcpProjectRenamed['json']['result']['structuredContent']['settings']['statuses'], 'keeps omitted settings on MCP project update');
+    assert_same(['p1', 'p2'], $mcpProjectRenamed['json']['result']['structuredContent']['settings']['priorities'], 'updates MCP project priorities');
+    $mcpStatusRemoval = mcp_request($base, $outsiderToken, 'tools/call', [
+        'name' => 'manycontext_update_project',
+        'arguments' => ['project' => 'McpProject', 'settings' => ['statuses' => ['backlog', 'done']]],
+    ]);
+    assert_true(str_contains($mcpStatusRemoval['json']['error']['message'] ?? '', 'review'), 'blocks removing a status that still has tasks');
+    $mcpProjectDeniedDelete = mcp_request($base, $outsiderToken, 'tools/call', [
+        'name' => 'manycontext_delete_project',
+        'arguments' => ['project' => 'McpProject'],
+    ]);
+    assert_true(str_contains($mcpProjectDeniedDelete['json']['error']['message'] ?? '', 'admins'), 'restricts MCP project deletion to admins');
+    $mcpProjectDeleted = mcp_request($base, $token, 'tools/call', [
+        'name' => 'manycontext_delete_project',
+        'arguments' => ['project' => 'McpProject'],
+    ]);
+    assert_true($mcpProjectDeleted['json']['result']['structuredContent']['deleted'] ?? false, 'admin deletes project through MCP');
+    assert_same(404, json_request('GET', $base . '/api/projects/McpProject')['status'], 'MCP-deleted project is not readable');
 
     $sandboxSubTasks = json_request('POST', $base . '/api/projects/SubTaskSandbox/tasks', [
         'title' => 'Tarefa com subtarefas',
