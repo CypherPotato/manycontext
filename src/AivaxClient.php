@@ -5,7 +5,8 @@ namespace ManyContext;
 final class AivaxClient
 {
     private const MAX_RERANK_DOCUMENTS = 3000;
-    private const MAX_RERANK_RESULTS = 200;
+    private const MAX_RERANK_RESULTS = 50;
+    private const RERANK_MODEL = '@aivax/reflex-v1.5';
 
     public const DEFAULT_MODEL = '@inception/mercury-2';
 
@@ -72,6 +73,7 @@ final class AivaxClient
         curl_setopt_array($curl, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode([
+                'model' => self::RERANK_MODEL,
                 'query' => $query,
                 'documents' => array_slice(array_values($documents), 0, self::MAX_RERANK_DOCUMENTS),
                 'top_n' => max(1, min($topN, count($documents))),
